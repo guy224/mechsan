@@ -7,26 +7,26 @@ import { signup, password } from "./validation";
 export async function register(db: DB, input: unknown) {
   const s = signup.parse(input);
   ensure(
-    await one(db, "SELECT id FROM scout_teams WHERE id=$1 AND active", [
+    await one(db, "SELECT id FROM machsan.scout_teams WHERE id=$1 AND active", [
       s.teamId,
     ]),
     "יש לבחור קבוצה פעילה",
   );
   ensure(
-    !(await one(db, "SELECT id FROM users WHERE phone=$1", [s.phone])),
+    !(await one(db, "SELECT id FROM machsan.users WHERE phone=$1", [s.phone])),
     "לא ניתן להשלים הרשמה עם הפרטים האלה",
   );
   const hash = await argon2.hash(s.password, { type: argon2.argon2id });
   const u = await one<{ id: string }>(
     db,
-    "INSERT INTO users(name,phone,password_hash,team_id) VALUES($1,$2,$3,$4) RETURNING id",
+    "INSERT INTO machsan.users(name,phone,password_hash,team_id) VALUES($1,$2,$3,$4) RETURNING id",
     [s.name, s.phone, hash, s.teamId],
   );
   const g = await one<{ id: string }>(
     db,
-    "INSERT INTO instructor_units DEFAULT VALUES RETURNING id",
+    "INSERT INTO machsan.instructor_units DEFAULT VALUES RETURNING id",
   );
-  await db.query("INSERT INTO instructor_unit_members VALUES($1,$2)", [
+  await db.query("INSERT INTO machsan.instructor_unit_members VALUES($1,$2)", [
     u.id,
     g.id,
   ]);
@@ -37,7 +37,7 @@ async function movable(db: DB, id: string) {
   ensure(
     !(await one(
       db,
-      `SELECT id FROM reservations WHERE unit_id=$1 AND status IN ('RESERVED','DISTRIBUTED') UNION ALL SELECT q.id FROM queue_entries q JOIN activities a ON a.id=q.activity_id WHERE q.unit_id=$1 AND a.closes_at>now() AND NOT a.cancelled LIMIT 1`,
+      `SELECT id FROM machsan.reservations WHERE unit_id=$1 AND status IN ('RESERVED','DISTRIBUTED') UNION ALL SELECT q.id FROM machsan.queue_entries q JOIN machsan.activities a ON a.id=q.activity_id WHERE q.unit_id=$1 AND a.closes_at>now() AND NOT a.cancelled LIMIT 1`,
       [id],
     )),
     "אפשר לשנות שותפות רק לאחר סיום התור והחזרת כל הציוד",
@@ -54,7 +54,7 @@ export async function partnership(
   if (action === "request") {
     const other = await one<User>(
       db,
-      "SELECT * FROM users WHERE id=$1 AND NOT disabled",
+      "SELECT * FROM machsan.users WHERE id=$1 AND NOT disabled",
       [target],
     );
     ensure(
@@ -67,7 +67,7 @@ export async function partnership(
           (
             await one<{ n: string }>(
               db,
-              "SELECT count(*) n FROM instructor_unit_members WHERE unit_id=(SELECT unit_id FROM instructor_unit_members WHERE user_id=$1)",
+              "SELECT count(*) n FROM machsan.instructor_unit_members WHERE unit_id=(SELECT unit_id FROM machsan.instructor_unit_members WHERE user_id=$1)",
               [id],
             )
           ).n,
@@ -75,7 +75,7 @@ export async function partnership(
         "אחד המדריכים כבר בשותפות",
       );
     await db.query(
-      "INSERT INTO partnership_requests(sender_id,recipient_id) VALUES($1,$2) ON CONFLICT DO NOTHING",
+      "INSERT INTO machsan.partnership_requests(sender_id,recipient_id) VALUES($1,$2) ON CONFLICT DO NOTHING",
       [u.id, target],
     );
     return;
@@ -86,17 +86,17 @@ export async function partnership(
     await movable(db, old);
     const members = (
       await db.query<{ user_id: string }>(
-        "SELECT user_id FROM instructor_unit_members WHERE unit_id=$1",
+        "SELECT user_id FROM machsan.instructor_unit_members WHERE unit_id=$1",
         [old],
       )
     ).rows;
     for (const m of members) {
       const fresh = await one<{ id: string }>(
         db,
-        "INSERT INTO instructor_units DEFAULT VALUES RETURNING id",
+        "INSERT INTO machsan.instructor_units DEFAULT VALUES RETURNING id",
       );
       await db.query(
-        "UPDATE instructor_unit_members SET unit_id=$1 WHERE user_id=$2",
+        "UPDATE machsan.instructor_unit_members SET unit_id=$1 WHERE user_id=$2",
         [fresh.id, m.user_id],
       );
     }
@@ -107,22 +107,23 @@ export async function partnership(
     sender_id: string;
     recipient_id: string;
     status: string;
-  }>(db, "SELECT * FROM partnership_requests WHERE id=$1", [target]);
+  }>(db, "SELECT * FROM machsan.partnership_requests WHERE id=$1", [target]);
   ensure(
     r && (r.recipient_id === u.id || override) && r.status === "PENDING",
     "הבקשה אינה זמינה",
   );
   if (action === "reject") {
     await db.query(
-      "UPDATE partnership_requests SET status='REJECTED' WHERE id=$1",
+      "UPDATE machsan.partnership_requests SET status='REJECTED' WHERE id=$1",
       [target],
     );
     return;
   }
   const people = (
-    await db.query<User>("SELECT * FROM users WHERE id=ANY($1::uuid[])", [
-      [r.sender_id, r.recipient_id],
-    ])
+    await db.query<User>(
+      "SELECT * FROM machsan.users WHERE id=ANY($1::uuid[])",
+      [[r.sender_id, r.recipient_id]],
+    )
   ).rows;
   ensure(
     people.length === 2 &&
@@ -138,7 +139,7 @@ export async function partnership(
         (
           await one<{ n: string }>(
             db,
-            "SELECT count(*) n FROM instructor_unit_members WHERE unit_id=$1",
+            "SELECT count(*) n FROM machsan.instructor_unit_members WHERE unit_id=$1",
             [old],
           )
         ).n,
@@ -148,14 +149,14 @@ export async function partnership(
   }
   const fresh = await one<{ id: string }>(
     db,
-    "INSERT INTO instructor_units DEFAULT VALUES RETURNING id",
+    "INSERT INTO machsan.instructor_units DEFAULT VALUES RETURNING id",
   );
   await db.query(
-    "UPDATE instructor_unit_members SET unit_id=$1 WHERE user_id=ANY($2::uuid[])",
+    "UPDATE machsan.instructor_unit_members SET unit_id=$1 WHERE user_id=ANY($2::uuid[])",
     [fresh.id, [r.sender_id, r.recipient_id]],
   );
   await db.query(
-    "UPDATE partnership_requests SET status=CASE WHEN id=$1 THEN 'ACCEPTED' ELSE 'REJECTED' END WHERE status='PENDING' AND (sender_id=ANY($2::uuid[]) OR recipient_id=ANY($2::uuid[]))",
+    "UPDATE machsan.partnership_requests SET status=CASE WHEN id=$1 THEN 'ACCEPTED' ELSE 'REJECTED' END WHERE status='PENDING' AND (sender_id=ANY($2::uuid[]) OR recipient_id=ANY($2::uuid[]))",
     [target, [r.sender_id, r.recipient_id]],
   );
   await audit(db, u.id, "PARTNERSHIP", { request: target, override });
@@ -176,7 +177,7 @@ export async function warehouse(
     cancelled: boolean;
   }>(
     db,
-    "SELECT r.*,a.starts_at,a.ends_at,a.cancelled FROM reservations r JOIN activities a ON a.id=r.activity_id WHERE qr_token=$1",
+    "SELECT r.*,a.starts_at,a.ends_at,a.cancelled FROM machsan.reservations r JOIN machsan.activities a ON a.id=r.activity_id WHERE qr_token=$1",
     [token],
   );
   ensure(r, "קוד לא מוכר", 404);
@@ -190,29 +191,31 @@ export async function warehouse(
     );
     const inv = await one<{ n: number }>(
       db,
-      "SELECT total-damaged-(SELECT count(*) FROM equipment_loans WHERE returned_at IS NULL) n FROM inventory_items WHERE id='mat'",
+      "SELECT total-damaged-(SELECT count(*) FROM machsan.equipment_loans WHERE returned_at IS NULL) n FROM machsan.inventory_items WHERE id='mat'",
     );
     ensure(inv && inv.n > 0, "אין מחצלות זמינות פיזית");
-    await db.query("UPDATE reservations SET status='DISTRIBUTED' WHERE id=$1", [
-      r.id,
-    ]);
     await db.query(
-      "INSERT INTO equipment_loans(reservation_id,item_id,distributed_by) VALUES($1,'mat',$2)",
+      "UPDATE machsan.reservations SET status='DISTRIBUTED' WHERE id=$1",
+      [r.id],
+    );
+    await db.query(
+      "INSERT INTO machsan.equipment_loans(reservation_id,item_id,distributed_by) VALUES($1,'mat',$2)",
       [r.id, u.id],
     );
   } else {
     if (r.status === "RETURNED") return;
     ensure(r.status === "DISTRIBUTED", "לא נרשמה מסירה להזמנה זו");
     await db.query(
-      "UPDATE equipment_loans SET returned_at=now(),returned_by=$2 WHERE reservation_id=$1 AND returned_at IS NULL",
+      "UPDATE machsan.equipment_loans SET returned_at=now(),returned_by=$2 WHERE reservation_id=$1 AND returned_at IS NULL",
       [r.id, u.id],
     );
-    await db.query("UPDATE reservations SET status='RETURNED' WHERE id=$1", [
-      r.id,
-    ]);
+    await db.query(
+      "UPDATE machsan.reservations SET status='RETURNED' WHERE id=$1",
+      [r.id],
+    );
   }
   await db.query(
-    "INSERT INTO inventory_transactions(reservation_id,actor_id,action) VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
+    "INSERT INTO machsan.inventory_transactions(reservation_id,actor_id,action) VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
     [r.id, u.id, action],
   );
   await audit(db, u.id, action, { reservation: r.id });
@@ -230,7 +233,7 @@ export async function manual(
   await tick(db);
   const a = await one(
     db,
-    "SELECT id FROM activities WHERE id=$1 AND NOT cancelled AND ends_at>now()",
+    "SELECT id FROM machsan.activities WHERE id=$1 AND NOT cancelled AND ends_at>now()",
     [activityId],
   );
   ensure(a, "הפעילות אינה זמינה");
@@ -239,17 +242,17 @@ export async function manual(
   ensure(
     !(await one(
       db,
-      "SELECT q.id FROM queue_entries q JOIN queue_offers o ON o.entry_id=q.id WHERE q.activity_id=$1 AND q.unit_id=$2 AND o.state='ACTIVE'",
+      "SELECT q.id FROM machsan.queue_entries q JOIN machsan.queue_offers o ON o.entry_id=q.id WHERE q.activity_id=$1 AND q.unit_id=$2 AND o.state='ACTIVE'",
       [activityId, uid],
     )),
     "יש לאשר או לדחות תחילה את ההצעה הפעילה",
   );
   await db.query(
-    "INSERT INTO reservations(activity_id,unit_id,status,created_by) VALUES($1,$2,'RESERVED',$3)",
+    "INSERT INTO machsan.reservations(activity_id,unit_id,status,created_by) VALUES($1,$2,'RESERVED',$3)",
     [activityId, uid, u.id],
   );
   await db.query(
-    "UPDATE queue_entries SET state='RESERVED' WHERE activity_id=$1 AND unit_id=$2",
+    "UPDATE machsan.queue_entries SET state='RESERVED' WHERE activity_id=$1 AND unit_id=$2",
     [activityId, uid],
   );
   await audit(db, u.id, "MANUAL_RESERVATION", { userId, activityId, reason });
@@ -271,19 +274,19 @@ export async function administer(db: DB, u: User, input: unknown) {
       ensure(s.damaged <= s.total, "מלאי לא תקין");
       const old = await one<{ total: number; damaged: number }>(
         db,
-        "SELECT * FROM inventory_items WHERE id='mat'",
+        "SELECT * FROM machsan.inventory_items WHERE id='mat'",
       );
       if (old && s.total - s.damaged < old.total - old.damaged) {
         ensure(
           !(await one(
             db,
-            "SELECT id FROM reservations WHERE status IN ('RESERVED','DISTRIBUTED') UNION ALL SELECT id FROM queue_offers WHERE state='ACTIVE' LIMIT 1",
+            "SELECT id FROM machsan.reservations WHERE status IN ('RESERVED','DISTRIBUTED') UNION ALL SELECT id FROM machsan.queue_offers WHERE state='ACTIVE' LIMIT 1",
           )),
           "יש לסיים הקצאות והשאלות לפני הקטנת המלאי",
         );
       }
       await db.query(
-        "INSERT INTO inventory_items(id,name,total,damaged) VALUES('mat','מחצלות',$1,$2) ON CONFLICT(id) DO UPDATE SET total=$1,damaged=$2",
+        "INSERT INTO machsan.inventory_items(id,name,total,damaged) VALUES('mat','מחצלות',$1,$2) ON CONFLICT(id) DO UPDATE SET total=$1,damaged=$2",
         [s.total, s.damaged],
       );
       break;
@@ -297,12 +300,14 @@ export async function administer(db: DB, u: User, input: unknown) {
         })
         .parse(d);
       if (s.id)
-        await db.query("UPDATE scout_teams SET name=$2,active=$3 WHERE id=$1", [
-          s.id,
+        await db.query(
+          "UPDATE machsan.scout_teams SET name=$2,active=$3 WHERE id=$1",
+          [s.id, s.name, s.active],
+        );
+      else
+        await db.query("INSERT INTO machsan.scout_teams(name) VALUES($1)", [
           s.name,
-          s.active,
         ]);
-      else await db.query("INSERT INTO scout_teams(name) VALUES($1)", [s.name]);
       break;
     }
     case "user": {
@@ -323,7 +328,7 @@ export async function administer(db: DB, u: User, input: unknown) {
             (
               await one<{ n: string }>(
                 db,
-                "SELECT count(*) n FROM instructor_unit_members WHERE unit_id=$1",
+                "SELECT count(*) n FROM machsan.instructor_unit_members WHERE unit_id=$1",
                 [uid],
               )
             ).n,
@@ -331,14 +336,16 @@ export async function administer(db: DB, u: User, input: unknown) {
           "יש לפרק שותפות לפני שינוי קבוצה",
         );
         ensure(
-          await one(db, "SELECT id FROM scout_teams WHERE id=$1 AND active", [
-            s.teamId,
-          ]),
+          await one(
+            db,
+            "SELECT id FROM machsan.scout_teams WHERE id=$1 AND active",
+            [s.teamId],
+          ),
           "קבוצה לא פעילה",
         );
       }
       await db.query(
-        "UPDATE users SET role=$2,disabled=$3,team_id=coalesce($4,team_id),session_version=session_version+1 WHERE id=$1",
+        "UPDATE machsan.users SET role=$2,disabled=$3,team_id=coalesce($4,team_id),session_version=session_version+1 WHERE id=$1",
         [s.id, s.role, s.disabled, s.teamId ?? null],
       );
       break;
@@ -352,7 +359,7 @@ export async function administer(db: DB, u: User, input: unknown) {
         })
         .parse(d);
       await db.query(
-        "UPDATE users SET password_hash=$2,session_version=session_version+1 WHERE id=$1",
+        "UPDATE machsan.users SET password_hash=$2,session_version=session_version+1 WHERE id=$1",
         [s.id, await argon2.hash(s.password, { type: argon2.argon2id })],
       );
       await audit(db, u.id, "RECOVERY", {
@@ -383,13 +390,13 @@ export async function administer(db: DB, u: User, input: unknown) {
         ensure(
           !(await one(
             db,
-            "SELECT id FROM queue_entries WHERE activity_id=$1 LIMIT 1",
+            "SELECT id FROM machsan.queue_entries WHERE activity_id=$1 LIMIT 1",
             [s.id],
           )),
           "פעילות עם משתתפים אינה ניתנת לתזמון מחדש",
         );
         await db.query(
-          "UPDATE activities SET title=$2,starts_at=$3,ends_at=$4,opens_at=$5,waiting_at=$6,closes_at=$7 WHERE id=$1",
+          "UPDATE machsan.activities SET title=$2,starts_at=$3,ends_at=$4,opens_at=$5,waiting_at=$6,closes_at=$7 WHERE id=$1",
           [
             s.id,
             s.title,
@@ -402,7 +409,7 @@ export async function administer(db: DB, u: User, input: unknown) {
         );
       } else
         await db.query(
-          "INSERT INTO activities(title,starts_at,ends_at,opens_at,waiting_at,closes_at) VALUES($1,$2,$3,$4,$5,$6)",
+          "INSERT INTO machsan.activities(title,starts_at,ends_at,opens_at,waiting_at,closes_at) VALUES($1,$2,$3,$4,$5,$6)",
           [s.title, s.startsAt, s.endsAt, s.opensAt, s.waitingAt, s.closesAt],
         );
       break;
@@ -415,26 +422,27 @@ export async function administer(db: DB, u: User, input: unknown) {
         })
         .parse(d);
       if (s.operation === "pause" || s.operation === "resume")
-        await db.query("UPDATE activities SET paused=$2 WHERE id=$1", [
+        await db.query("UPDATE machsan.activities SET paused=$2 WHERE id=$1", [
           s.id,
           s.operation === "pause",
         ]);
       if (s.operation === "open")
         await db.query(
-          "UPDATE activities SET opens_at=now(),waiting_at=least(waiting_at,now()) WHERE id=$1 AND closes_at>now()",
+          "UPDATE machsan.activities SET opens_at=now(),waiting_at=least(waiting_at,now()) WHERE id=$1 AND closes_at>now()",
           [s.id],
         );
       if (s.operation === "close")
         await db.query(
-          "UPDATE activities SET closes_at=greatest(now(),opens_at+interval '1 millisecond') WHERE id=$1",
+          "UPDATE machsan.activities SET closes_at=greatest(now(),opens_at+interval '1 millisecond') WHERE id=$1",
           [s.id],
         );
       if (s.operation === "cancel") {
-        await db.query("UPDATE activities SET cancelled=true WHERE id=$1", [
-          s.id,
-        ]);
         await db.query(
-          "UPDATE reservations SET status='CANCELLED' WHERE activity_id=$1 AND status='RESERVED'",
+          "UPDATE machsan.activities SET cancelled=true WHERE id=$1",
+          [s.id],
+        );
+        await db.query(
+          "UPDATE machsan.reservations SET status='CANCELLED' WHERE activity_id=$1 AND status='RESERVED'",
           [s.id],
         );
       }
@@ -454,7 +462,7 @@ export async function administer(db: DB, u: User, input: unknown) {
         .parse(d);
       ensure(s.start < s.end, "שעת הסיום צריכה להיות אחרי ההתחלה");
       await db.query(
-        "UPDATE weekly_schedules SET weekday=$2,start_time=$3,end_time=$4,opening_minutes=$5,waiting_minutes=$6,active=$7 WHERE id=$1",
+        "UPDATE machsan.weekly_schedules SET weekday=$2,start_time=$3,end_time=$4,opening_minutes=$5,waiting_minutes=$6,active=$7 WHERE id=$1",
         [s.id, s.weekday, s.start, s.end, s.opening, s.waiting, s.active],
       );
       break;
@@ -462,7 +470,7 @@ export async function administer(db: DB, u: User, input: unknown) {
     case "announcement": {
       const s = z.object({ text: z.string().max(500) }).parse(d);
       await db.query(
-        "INSERT INTO application_settings VALUES('announcement',$1) ON CONFLICT(key) DO UPDATE SET value=$1",
+        "INSERT INTO machsan.application_settings VALUES('announcement',$1) ON CONFLICT(key) DO UPDATE SET value=$1",
         [JSON.stringify(s.text)],
       );
       break;

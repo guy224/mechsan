@@ -8,7 +8,7 @@ export interface DB {
   ): Promise<{ rows: T[]; rowCount?: number | null }>;
 }
 
-let pool: Pool;
+const globalDb = globalThis as unknown as { machsanPool?: Pool };
 
 function databaseTls() {
   const caValue = process.env.DATABASE_SSL_ROOT_CERT;
@@ -33,6 +33,7 @@ function databaseTls() {
 
   const hostname = new URL(process.env.DATABASE_URL!).hostname;
 
+  const isNeon = hostname.endsWith(".neon.tech");
   const isSupabase =
     hostname.endsWith(".supabase.co") ||
     hostname.endsWith(".pooler.supabase.com");
@@ -41,7 +42,9 @@ function databaseTls() {
     process.env.NODE_ENV !== "production" &&
     process.env.DATABASE_SSL_ALLOW_INSECURE_LOCAL === "true";
 
-  return process.env.NODE_ENV === "production" || (isSupabase && !allowInsecureLocal)
+  return process.env.NODE_ENV === "production" ||
+    isNeon ||
+    (isSupabase && !allowInsecureLocal)
     ? { rejectUnauthorized: true }
     : isSupabase
       ? { rejectUnauthorized: false }
@@ -64,11 +67,12 @@ export function database() {
     throw new Error("DATABASE_NOT_CONFIGURED");
   }
 
-  return (pool ??= new Pool({
+  if (globalDb.machsanPool) return globalDb.machsanPool;
+  const pool = new Pool({
     connectionString: databaseUrl(),
     ssl: databaseTls(),
 
-    // Limit connections per serverless instance to reduce Supabase pool exhaustion.
+    // Bound connections per serverless instance; reuse across warm requests.
     max: 2,
 
     // Close idle connections after 10 seconds.
@@ -77,9 +81,12 @@ export function database() {
     // Stop waiting for a connection after 5 seconds.
     connectionTimeoutMillis: 5000,
 
-    options: "-c search_path=machsan,public",
-    statement_timeout: 15000,
-  }));
+    // Queries name their schema explicitly; no session startup parameters.
+    query_timeout: 15000,
+  });
+  pool.on("error", (error) => logError("database_idle", error));
+  globalDb.machsanPool = pool;
+  return pool;
 }
 
 export async function transaction<T>(
@@ -88,14 +95,19 @@ export async function transaction<T>(
 ): Promise<T> {
   const c = await database().connect();
 
+  let broken = false;
   try {
     await c.query("BEGIN");
 
-    await c.query("SELECT id FROM operation_lock WHERE id=1 FOR UPDATE");
+    await c.query("SET LOCAL statement_timeout = '15s'");
+    const lock = await c.query(
+      "SELECT id FROM machsan.operation_lock WHERE id=1 FOR UPDATE",
+    );
+    if (lock.rowCount !== 1) throw new Error("DATABASE_LOCK_MISSING");
 
     const result = await fn(c);
 
-    if (notify) {
+    if (notify && realtimeEnabled()) {
       await c.query("SELECT pg_notify('machsan_changed','')");
     }
 
@@ -103,18 +115,18 @@ export async function transaction<T>(
 
     return result;
   } catch (e) {
-    await c.query("ROLLBACK");
+    try {
+      await c.query("ROLLBACK");
+    } catch {
+      broken = true;
+    }
     throw e;
   } finally {
-    c.release();
+    c.release(broken);
   }
 }
 
-export async function one<T>(
-  db: DB,
-  sql: string,
-  values: unknown[] = [],
-) {
+export async function one<T>(db: DB, sql: string, values: unknown[] = []) {
   return (await db.query<T>(sql, values)).rows[0];
 }
 
@@ -135,4 +147,23 @@ export function ensure(
   if (!value) {
     throw new AppError(message, status);
   }
+}
+
+// LISTEN requires a persistent direct session, never a transaction pool.
+export function realtimeEnabled() {
+  if (process.env.DATABASE_REALTIME !== "true" || process.env.NETLIFY)
+    return false;
+  const host = new URL(process.env.DATABASE_URL!).hostname;
+  return !host.includes("-pooler.") && !host.endsWith(".pooler.supabase.com");
+}
+
+export function logError(context: string, error: unknown) {
+  const code = (error as { code?: unknown } | null)?.code;
+  // Do not log messages/details: drivers can include SQL values or credentials.
+  console.error(context, {
+    code:
+      typeof code === "string" && /^[A-Z0-9_]{2,40}$/.test(code)
+        ? code
+        : "INTERNAL_ERROR",
+  });
 }

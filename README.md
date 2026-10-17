@@ -105,3 +105,19 @@ For HTTP integration, run a disposable local application/database, bootstrap a t
 - `tests/`: database-backed workflow, concurrency-request, rollback, access, and DST tests.
 
 The item catalog has `requires_return`, loans reference an inventory item, and units/actor audits are reusable for general equipment. Consumable requests, speech announcements, and personal equipment QR passes are deliberately outside version one.
+
+## Neon / Netlify (2026-10-17)
+
+The application supports Neon's pooled PostgreSQL endpoint. All runtime SQL explicitly names `machsan`; no `search_path` startup option is sent. TLS verifies Neon's certificate using the system trust store. Leave `DATABASE_SSL_ROOT_CERT` unset for Neon. Never put the database URL in a `NEXT_PUBLIC_` variable.
+
+Netlify needs `DATABASE_URL`, `NEXTAUTH_URL=https://mechsan.netlify.app` and the existing `NEXTAUTH_SECRET` in the production Functions environment. Keep the secret unchanged. Publish the GitHub main branch using `npm run build`; Netlify's Next.js adapter manages the web server. Do not run migrations as part of every web build.
+
+Before initial use, a trusted operator runs `npm run verify:db` with the real runtime DATABASE_URL. This is read-only and compares schema definitions with `db/schema-manifest.json`, generated from the unchanged initial SQL. It verifies required migration/lock/job records and runtime privileges. If it fails, inspect the reported category; never reset production to fix it. `npm run migrate` now rejects an incomplete existing schema rather than reporting success based solely on the migrations table.
+
+Local setup: `npm ci`, copy `.env.example` to `.env`, enter the Neon pooled URL and a local NEXTAUTH_SECRET, keep NEXTAUTH_URL at http://localhost:3000, then `npm run verify:db`. For an empty database, set ADMIN_NAME, ADMIN_PHONE and a strong ADMIN_PASSWORD privately in `.env`, run `npm run bootstrap` once, then remove the ADMIN_* entries. Run `npm run dev` and, in a second terminal, `npm run worker`. Use `npm run dev -- --webpack` with WATCHPACK_POLLING=true if the local environment restricts filesystem watchers. Do not bootstrap a second administrator automatically.
+
+The queue requires a continuously running worker (`npm run worker`, restart on failure) on an approved server, with the same Neon DATABASE_URL. Netlify web functions alone do not keep this process alive. Minute-based scheduled invocations do not satisfy 90-second offer timing. Multiple workers are serialized by the transaction lock and claim jobs transactionally. A worker restart catches up expired offers; confirmation always checks the deadline. No worker hosting service is provisioned by this code change.
+
+Polling remains enabled for signed-in, visible, online pages and avoids overlapping requests. LISTEN/SSE is off by default and always disabled on Netlify or a recognized transaction-pool endpoint. Optional DATABASE_REALTIME=true is for a persistent host with a direct PostgreSQL connection only.
+
+`/api/health` reports separate database and worker status and returns 503 when either is unavailable. An empty database still needs an initial administrator, real team names and actual inventory quantities; do not invent stock counts. `db/runtime-role.sql` contains generic PostgreSQL grants, but requires a separately provisioned `machsan_app` role; do not run it against a differently named Neon role without review. Prefer a limited runtime role over the database owner before opening registration to the public.

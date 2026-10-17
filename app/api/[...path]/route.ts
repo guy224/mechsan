@@ -1,3 +1,4 @@
+import { realtimeEnabled, logError } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { database, transaction, one, ensure, AppError } from "@/lib/db";
@@ -63,7 +64,7 @@ async function handle(req: NextRequest) {
       return json(
         (
           await db.query(
-            "SELECT id,name FROM scout_teams WHERE active ORDER BY name",
+            "SELECT id,name FROM machsan.scout_teams WHERE active ORDER BY name",
           )
         ).rows,
       );
@@ -86,26 +87,26 @@ async function handle(req: NextRequest) {
           jobs,
         ] = await Promise.all([
           db.query(
-          `SELECT a.*,q.state queue_state,q.position,o.expires_at,(SELECT count(*) FROM queue_entries ahead WHERE ahead.activity_id=a.id AND ahead.position<q.position AND ahead.state IN ('QUEUED','WAITLISTED','OFFERED')) ahead FROM activities a LEFT JOIN queue_entries q ON q.activity_id=a.id AND q.unit_id=$1 LEFT JOIN queue_offers o ON o.entry_id=q.id AND o.state='ACTIVE' WHERE NOT a.cancelled AND a.ends_at>now()-interval '1 day' ORDER BY a.starts_at LIMIT 12`,
+            `SELECT a.*,q.state queue_state,q.position,o.expires_at,(SELECT count(*) FROM machsan.queue_entries ahead WHERE ahead.activity_id=a.id AND ahead.position<q.position AND ahead.state IN ('QUEUED','WAITLISTED','OFFERED')) ahead FROM machsan.activities a LEFT JOIN machsan.queue_entries q ON q.activity_id=a.id AND q.unit_id=$1 LEFT JOIN machsan.queue_offers o ON o.entry_id=q.id AND o.state='ACTIVE' WHERE NOT a.cancelled AND a.ends_at>now()-interval '1 day' ORDER BY a.starts_at LIMIT 12`,
             [uid],
           ),
           db.query(
-            `SELECT r.id,r.activity_id,r.unit_id,r.status,r.qr_token,r.names,r.team_name,a.title,a.starts_at,a.ends_at FROM reservations r JOIN activities a ON a.id=r.activity_id WHERE r.unit_id=$1 OR $2=ANY(r.borrower_ids) ORDER BY a.starts_at DESC LIMIT 50`,
+            `SELECT r.id,r.activity_id,r.unit_id,r.status,r.qr_token,r.names,r.team_name,a.title,a.starts_at,a.ends_at FROM machsan.reservations r JOIN machsan.activities a ON a.id=r.activity_id WHERE r.unit_id=$1 OR $2=ANY(r.borrower_ids) ORDER BY a.starts_at DESC LIMIT 50`,
             [uid, u.id],
           ),
           db.query(
-            "SELECT u.id,u.name FROM users u JOIN instructor_unit_members m ON m.user_id=u.id WHERE m.unit_id=$1",
+            "SELECT u.id,u.name FROM machsan.users u JOIN machsan.instructor_unit_members m ON m.user_id=u.id WHERE m.unit_id=$1",
             [uid],
           ),
           db.query(
-            "SELECT p.id,u.name FROM partnership_requests p JOIN users u ON u.id=p.sender_id WHERE recipient_id=$1 AND status='PENDING'",
+            "SELECT p.id,u.name FROM machsan.partnership_requests p JOIN machsan.users u ON u.id=p.sender_id WHERE recipient_id=$1 AND status='PENDING'",
             [u.id],
           ),
           one<{ value: string }>(
             db,
-            "SELECT value FROM application_settings WHERE key='announcement'",
+            "SELECT value FROM machsan.application_settings WHERE key='announcement'",
           ),
-          db.query("SELECT id,last_success FROM background_jobs"),
+          db.query("SELECT id,last_success FROM machsan.background_jobs"),
         ]);
         const enriched = await Promise.all(
           activities.rows.map(async (a) => ({
@@ -121,10 +122,11 @@ async function handle(req: NextRequest) {
           requests: requests.rows,
           announcement: announcement?.value ?? "",
           jobs: jobs.rows,
+          realtimeEnabled: realtimeEnabled(),
           serverTime: new Date().toISOString(),
           configured: !!(await one(
             db,
-            "SELECT id FROM inventory_items WHERE id='mat'",
+            "SELECT id FROM machsan.inventory_items WHERE id='mat'",
           )),
         });
       }
@@ -135,7 +137,7 @@ async function handle(req: NextRequest) {
         return json(
           (
             await db.query(
-              "SELECT id,name FROM users WHERE team_id=$1 AND id<>$2 AND NOT disabled AND name ILIKE $3 ORDER BY name LIMIT 5",
+              "SELECT id,name FROM machsan.users WHERE team_id=$1 AND id<>$2 AND NOT disabled AND name ILIKE $3 ORDER BY name LIMIT 5",
               [u.team_id, u.id, `%${q}%`],
             )
           ).rows,
@@ -148,13 +150,13 @@ async function handle(req: NextRequest) {
         if (token) uuid.parse(token);
         const rows = (
           await db.query(
-            `SELECT r.*,a.title,a.starts_at FROM reservations r JOIN activities a ON a.id=r.activity_id WHERE ($1::uuid IS NULL OR r.qr_token=$1) AND ($2='' OR r.names ILIKE $3 OR r.borrower_phones ILIKE $3 OR r.team_name ILIKE $3) ORDER BY a.starts_at DESC LIMIT 100`,
+            `SELECT r.*,a.title,a.starts_at FROM machsan.reservations r JOIN machsan.activities a ON a.id=r.activity_id WHERE ($1::uuid IS NULL OR r.qr_token=$1) AND ($2='' OR r.names ILIKE $3 OR r.borrower_phones ILIKE $3 OR r.team_name ILIKE $3) ORDER BY a.starts_at DESC LIMIT 100`,
             [token ?? null, q, `%${q}%`],
           )
         ).rows;
         const inventory = await one(
           db,
-          "SELECT *,total-damaged-(SELECT count(*) FROM equipment_loans WHERE returned_at IS NULL) physical_available FROM inventory_items WHERE id='mat'",
+          "SELECT *,total-damaged-(SELECT count(*) FROM machsan.equipment_loans WHERE returned_at IS NULL) physical_available FROM machsan.inventory_items WHERE id='mat'",
         );
         return json({ rows, inventory });
       }
@@ -165,7 +167,7 @@ async function handle(req: NextRequest) {
         return json(
           (
             await db.query(
-              "SELECT id,name,phone FROM users WHERE name ILIKE $1 OR phone ILIKE $1 LIMIT 15",
+              "SELECT id,name,phone FROM machsan.users WHERE name ILIKE $1 OR phone ILIKE $1 LIMIT 15",
               [`%${q}%`],
             )
           ).rows,
@@ -176,18 +178,18 @@ async function handle(req: NextRequest) {
         const [users, teams, schedules, audits, queue, requests] =
           await Promise.all([
             db.query(
-              "SELECT id,name,phone,role,disabled,team_id FROM users ORDER BY name",
+              "SELECT id,name,phone,role,disabled,team_id FROM machsan.users ORDER BY name",
             ),
-            db.query("SELECT * FROM scout_teams ORDER BY name"),
-            db.query("SELECT * FROM weekly_schedules"),
+            db.query("SELECT * FROM machsan.scout_teams ORDER BY name"),
+            db.query("SELECT * FROM machsan.weekly_schedules"),
             db.query(
-              "SELECT a.*,u.name actor FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT 100",
-            ),
-            db.query(
-              "SELECT q.*,a.title,o.expires_at FROM queue_entries q JOIN activities a ON a.id=q.activity_id LEFT JOIN queue_offers o ON o.entry_id=q.id WHERE a.ends_at>now() ORDER BY a.starts_at,q.position",
+              "SELECT a.*,u.name actor FROM machsan.audit_logs a LEFT JOIN machsan.users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT 100",
             ),
             db.query(
-              "SELECT p.*,s.name sender,r.name recipient FROM partnership_requests p JOIN users s ON s.id=p.sender_id JOIN users r ON r.id=p.recipient_id WHERE p.status='PENDING'",
+              "SELECT q.*,a.title,o.expires_at FROM machsan.queue_entries q JOIN machsan.activities a ON a.id=q.activity_id LEFT JOIN machsan.queue_offers o ON o.entry_id=q.id WHERE a.ends_at>now() ORDER BY a.starts_at,q.position",
+            ),
+            db.query(
+              "SELECT p.*,s.name sender,r.name recipient FROM machsan.partnership_requests p JOIN machsan.users s ON s.id=p.sender_id JOIN machsan.users r ON r.id=p.recipient_id WHERE p.status='PENDING'",
             ),
           ]);
         return json({
@@ -207,7 +209,7 @@ async function handle(req: NextRequest) {
     await transaction(async (c) => {
       const fresh = await one<{ disabled: boolean; session_version: number }>(
         c,
-        "SELECT disabled,session_version FROM users WHERE id=$1",
+        "SELECT disabled,session_version FROM machsan.users WHERE id=$1",
         [u.id],
       );
       ensure(
@@ -228,11 +230,11 @@ async function handle(req: NextRequest) {
         case "decline": {
           const uid = await unit(c, u.id);
           await c.query(
-            "UPDATE queue_offers SET state='DECLINED' WHERE state='ACTIVE' AND entry_id IN (SELECT id FROM queue_entries WHERE activity_id=$1 AND unit_id=$2)",
+            "UPDATE machsan.queue_offers SET state='DECLINED' WHERE state='ACTIVE' AND entry_id IN (SELECT id FROM machsan.queue_entries WHERE activity_id=$1 AND unit_id=$2)",
             [uuid.parse(body.activityId), uid],
           );
           await c.query(
-            "UPDATE queue_entries SET state='OFFER_EXPIRED' WHERE activity_id=$1 AND unit_id=$2 AND state='OFFERED'",
+            "UPDATE machsan.queue_entries SET state='OFFER_EXPIRED' WHERE activity_id=$1 AND unit_id=$2 AND state='OFFERED'",
             [body.activityId, uid],
           );
           await tick(c);
@@ -284,7 +286,7 @@ async function handle(req: NextRequest) {
                 (
                   await one<{ n: string }>(
                     c,
-                    "SELECT count(*) n FROM instructor_unit_members WHERE unit_id=$1",
+                    "SELECT count(*) n FROM machsan.instructor_unit_members WHERE unit_id=$1",
                     [uid],
                   )
                 ).n,
@@ -294,23 +296,24 @@ async function handle(req: NextRequest) {
             ensure(
               !(await one(
                 c,
-                "SELECT id FROM reservations WHERE unit_id=$1 AND status IN ('RESERVED','DISTRIBUTED') UNION ALL SELECT q.id FROM queue_entries q JOIN activities a ON a.id=q.activity_id WHERE q.unit_id=$1 AND a.closes_at>now() LIMIT 1",
+                "SELECT id FROM machsan.reservations WHERE unit_id=$1 AND status IN ('RESERVED','DISTRIBUTED') UNION ALL SELECT q.id FROM machsan.queue_entries q JOIN machsan.activities a ON a.id=q.activity_id WHERE q.unit_id=$1 AND a.closes_at>now() LIMIT 1",
                 [uid],
               )),
               "לא ניתן לשנות קבוצה בזמן תור או השאלה",
             );
           }
           ensure(
-            await one(c, "SELECT id FROM scout_teams WHERE id=$1 AND active", [
-              s.teamId,
-            ]),
+            await one(
+              c,
+              "SELECT id FROM machsan.scout_teams WHERE id=$1 AND active",
+              [s.teamId],
+            ),
             "הקבוצה אינה פעילה",
           );
-          await c.query("UPDATE users SET name=$2,team_id=$3 WHERE id=$1", [
-            u.id,
-            s.name,
-            s.teamId,
-          ]);
+          await c.query(
+            "UPDATE machsan.users SET name=$2,team_id=$3 WHERE id=$1",
+            [u.id, s.name, s.teamId],
+          );
           await audit(c, u.id, "PROFILE");
           break;
         }
@@ -325,7 +328,7 @@ async function handle(req: NextRequest) {
       return json({ error: "יש לבדוק את הפרטים שהוזנו" }, 400);
     if ((e as { code?: string }).code === "23505")
       return json({ error: "הפעולה כבר בוצעה או שהפרטים כבר בשימוש" }, 409);
-    console.error(e instanceof Error ? e.message : "Request failed");
+    logError("api_request", e);
     return json(
       {
         error: process.env.DATABASE_URL

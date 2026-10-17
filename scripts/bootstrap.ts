@@ -3,12 +3,12 @@ import { register } from "../lib/operations";
 async function run() {
   await transaction(async (db) => {
     ensure(
-      !(await one(db, "SELECT id FROM users WHERE role='ADMIN'")),
+      !(await one(db, "SELECT id FROM machsan.users WHERE role='ADMIN'")),
       "An administrator already exists",
     );
     const team = await one<{ id: string }>(
       db,
-      "INSERT INTO scout_teams(name) VALUES('צוות הדרכה') RETURNING id",
+      "INSERT INTO machsan.scout_teams(name) VALUES('צוות הדרכה') RETURNING id",
     );
     const u = await register(db, {
       name: process.env.ADMIN_NAME,
@@ -16,7 +16,7 @@ async function run() {
       password: process.env.ADMIN_PASSWORD,
       teamId: team.id,
     });
-    await db.query("UPDATE users SET role='ADMIN' WHERE id=$1", [u.id]);
+    await db.query("UPDATE machsan.users SET role='ADMIN' WHERE id=$1", [u.id]);
   });
   console.log("Administrator created");
   await database().end();

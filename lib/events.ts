@@ -19,7 +19,12 @@ export async function eventBus() {
         state.ready = false;
         client.release(true);
       });
-      await client.query("LISTEN machsan_changed");
+      try {
+        await client.query("LISTEN machsan_changed");
+      } catch (error) {
+        client.release(true);
+        throw error;
+      }
       state.ready = true;
     } finally {
       state.connecting = false;

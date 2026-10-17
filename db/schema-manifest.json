@@ -1,0 +1,1228 @@
+{
+  "columns": [
+    {
+      "table_name": "activities",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "activities",
+      "column_name": "title",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "activities",
+      "column_name": "starts_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "activities",
+      "column_name": "ends_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "activities",
+      "column_name": "opens_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "activities",
+      "column_name": "waiting_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "activities",
+      "column_name": "closes_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "activities",
+      "column_name": "cancelled",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "activities",
+      "column_name": "paused",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "activities",
+      "column_name": "randomized",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "activities",
+      "column_name": "schedule_key",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "application_settings",
+      "column_name": "key",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "application_settings",
+      "column_name": "value",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "actor_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "action",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "details",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb"
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "background_jobs",
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "background_jobs",
+      "column_name": "run_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "background_jobs",
+      "column_name": "attempts",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "background_jobs",
+      "column_name": "last_success",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "background_jobs",
+      "column_name": "last_error",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "equipment_loans",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "equipment_loans",
+      "column_name": "reservation_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "equipment_loans",
+      "column_name": "item_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "equipment_loans",
+      "column_name": "distributed_by",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "equipment_loans",
+      "column_name": "distributed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "equipment_loans",
+      "column_name": "returned_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "equipment_loans",
+      "column_name": "returned_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "instructor_unit_members",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "instructor_unit_members",
+      "column_name": "unit_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "instructor_units",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "instructor_units",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "inventory_items",
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "inventory_items",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "inventory_items",
+      "column_name": "total",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "inventory_items",
+      "column_name": "damaged",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "inventory_items",
+      "column_name": "requires_return",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "inventory_transactions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "inventory_transactions",
+      "column_name": "reservation_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "inventory_transactions",
+      "column_name": "actor_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "inventory_transactions",
+      "column_name": "action",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "inventory_transactions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "migrations",
+      "column_name": "version",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "operation_lock",
+      "column_name": "id",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "partnership_requests",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "partnership_requests",
+      "column_name": "sender_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "partnership_requests",
+      "column_name": "recipient_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "partnership_requests",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'PENDING'::text"
+    },
+    {
+      "table_name": "partnership_requests",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "queue_entries",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "queue_entries",
+      "column_name": "activity_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "queue_entries",
+      "column_name": "unit_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "queue_entries",
+      "column_name": "state",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "queue_entries",
+      "column_name": "position",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "queue_entries",
+      "column_name": "joined_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "queue_offers",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "queue_offers",
+      "column_name": "entry_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "queue_offers",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "queue_offers",
+      "column_name": "state",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "rate_limits",
+      "column_name": "key",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "rate_limits",
+      "column_name": "count",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "rate_limits",
+      "column_name": "reset_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "activity_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "unit_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "qr_token",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "names",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "team_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "borrower_phones",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "borrower_ids",
+      "data_type": "ARRAY",
+      "is_nullable": "NO",
+      "column_default": "'{}'::uuid[]"
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "created_by",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "reservations",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "scout_teams",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "scout_teams",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "scout_teams",
+      "column_name": "active",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "users",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "users",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "users",
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "users",
+      "column_name": "password_hash",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "users",
+      "column_name": "role",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'INSTRUCTOR'::text"
+    },
+    {
+      "table_name": "users",
+      "column_name": "team_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "users",
+      "column_name": "disabled",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "users",
+      "column_name": "session_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "users",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "table_name": "weekly_schedules",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "table_name": "weekly_schedules",
+      "column_name": "weekday",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "weekly_schedules",
+      "column_name": "start_time",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "weekly_schedules",
+      "column_name": "end_time",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "weekly_schedules",
+      "column_name": "opening_minutes",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "1440"
+    },
+    {
+      "table_name": "weekly_schedules",
+      "column_name": "waiting_minutes",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "15"
+    },
+    {
+      "table_name": "weekly_schedules",
+      "column_name": "active",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    }
+  ],
+  "constraints": [
+    {
+      "table_name": "activities",
+      "conname": "activities_check",
+      "contype": "c",
+      "definition": "CHECK (((waiting_at <= opens_at) AND (opens_at < closes_at) AND (starts_at < ends_at)))"
+    },
+    {
+      "table_name": "activities",
+      "conname": "activities_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "activities",
+      "conname": "activities_schedule_key_key",
+      "contype": "u",
+      "definition": "UNIQUE (schedule_key)"
+    },
+    {
+      "table_name": "application_settings",
+      "conname": "application_settings_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (key)"
+    },
+    {
+      "table_name": "audit_logs",
+      "conname": "audit_logs_actor_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES machsan.users(id)"
+    },
+    {
+      "table_name": "audit_logs",
+      "conname": "audit_logs_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "background_jobs",
+      "conname": "background_jobs_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "equipment_loans",
+      "conname": "equipment_loans_distributed_by_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (distributed_by) REFERENCES machsan.users(id)"
+    },
+    {
+      "table_name": "equipment_loans",
+      "conname": "equipment_loans_item_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (item_id) REFERENCES machsan.inventory_items(id)"
+    },
+    {
+      "table_name": "equipment_loans",
+      "conname": "equipment_loans_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "equipment_loans",
+      "conname": "equipment_loans_reservation_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (reservation_id) REFERENCES machsan.reservations(id)"
+    },
+    {
+      "table_name": "equipment_loans",
+      "conname": "equipment_loans_reservation_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (reservation_id)"
+    },
+    {
+      "table_name": "equipment_loans",
+      "conname": "equipment_loans_returned_by_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (returned_by) REFERENCES machsan.users(id)"
+    },
+    {
+      "table_name": "instructor_unit_members",
+      "conname": "instructor_unit_members_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (user_id)"
+    },
+    {
+      "table_name": "instructor_unit_members",
+      "conname": "instructor_unit_members_unit_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (unit_id) REFERENCES machsan.instructor_units(id)"
+    },
+    {
+      "table_name": "instructor_unit_members",
+      "conname": "instructor_unit_members_user_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES machsan.users(id)"
+    },
+    {
+      "table_name": "instructor_units",
+      "conname": "instructor_units_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "inventory_items",
+      "conname": "inventory_items_check",
+      "contype": "c",
+      "definition": "CHECK (((damaged >= 0) AND (damaged <= total)))"
+    },
+    {
+      "table_name": "inventory_items",
+      "conname": "inventory_items_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "inventory_items",
+      "conname": "inventory_items_total_check",
+      "contype": "c",
+      "definition": "CHECK ((total >= 0))"
+    },
+    {
+      "table_name": "inventory_transactions",
+      "conname": "inventory_transactions_actor_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (actor_id) REFERENCES machsan.users(id)"
+    },
+    {
+      "table_name": "inventory_transactions",
+      "conname": "inventory_transactions_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "inventory_transactions",
+      "conname": "inventory_transactions_reservation_id_action_key",
+      "contype": "u",
+      "definition": "UNIQUE (reservation_id, action)"
+    },
+    {
+      "table_name": "inventory_transactions",
+      "conname": "inventory_transactions_reservation_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (reservation_id) REFERENCES machsan.reservations(id)"
+    },
+    {
+      "table_name": "migrations",
+      "conname": "migrations_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (version)"
+    },
+    {
+      "table_name": "operation_lock",
+      "conname": "operation_lock_id_check",
+      "contype": "c",
+      "definition": "CHECK ((id = 1))"
+    },
+    {
+      "table_name": "operation_lock",
+      "conname": "operation_lock_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "partnership_requests",
+      "conname": "partnership_requests_check",
+      "contype": "c",
+      "definition": "CHECK ((sender_id <> recipient_id))"
+    },
+    {
+      "table_name": "partnership_requests",
+      "conname": "partnership_requests_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "partnership_requests",
+      "conname": "partnership_requests_recipient_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (recipient_id) REFERENCES machsan.users(id)"
+    },
+    {
+      "table_name": "partnership_requests",
+      "conname": "partnership_requests_sender_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (sender_id) REFERENCES machsan.users(id)"
+    },
+    {
+      "table_name": "partnership_requests",
+      "conname": "partnership_requests_status_check",
+      "contype": "c",
+      "definition": "CHECK ((status = ANY (ARRAY['PENDING'::text, 'ACCEPTED'::text, 'REJECTED'::text])))"
+    },
+    {
+      "table_name": "queue_entries",
+      "conname": "queue_entries_activity_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (activity_id) REFERENCES machsan.activities(id)"
+    },
+    {
+      "table_name": "queue_entries",
+      "conname": "queue_entries_activity_id_position_key",
+      "contype": "u",
+      "definition": "UNIQUE (activity_id, \"position\")"
+    },
+    {
+      "table_name": "queue_entries",
+      "conname": "queue_entries_activity_id_unit_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (activity_id, unit_id)"
+    },
+    {
+      "table_name": "queue_entries",
+      "conname": "queue_entries_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "queue_entries",
+      "conname": "queue_entries_state_check",
+      "contype": "c",
+      "definition": "CHECK ((state = ANY (ARRAY['WAITING_ROOM'::text, 'QUEUED'::text, 'OFFERED'::text, 'RESERVED'::text, 'OFFER_EXPIRED'::text, 'WAITLISTED'::text, 'CANCELLED'::text, 'CLOSED'::text])))"
+    },
+    {
+      "table_name": "queue_entries",
+      "conname": "queue_entries_unit_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (unit_id) REFERENCES machsan.instructor_units(id)"
+    },
+    {
+      "table_name": "queue_offers",
+      "conname": "queue_offers_entry_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (entry_id) REFERENCES machsan.queue_entries(id)"
+    },
+    {
+      "table_name": "queue_offers",
+      "conname": "queue_offers_entry_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (entry_id)"
+    },
+    {
+      "table_name": "queue_offers",
+      "conname": "queue_offers_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "queue_offers",
+      "conname": "queue_offers_state_check",
+      "contype": "c",
+      "definition": "CHECK ((state = ANY (ARRAY['ACTIVE'::text, 'CONFIRMED'::text, 'EXPIRED'::text, 'DECLINED'::text, 'CANCELLED'::text])))"
+    },
+    {
+      "table_name": "rate_limits",
+      "conname": "rate_limits_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (key)"
+    },
+    {
+      "table_name": "reservations",
+      "conname": "reservations_activity_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (activity_id) REFERENCES machsan.activities(id)"
+    },
+    {
+      "table_name": "reservations",
+      "conname": "reservations_activity_id_unit_id_key",
+      "contype": "u",
+      "definition": "UNIQUE (activity_id, unit_id)"
+    },
+    {
+      "table_name": "reservations",
+      "conname": "reservations_created_by_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (created_by) REFERENCES machsan.users(id)"
+    },
+    {
+      "table_name": "reservations",
+      "conname": "reservations_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "reservations",
+      "conname": "reservations_qr_token_key",
+      "contype": "u",
+      "definition": "UNIQUE (qr_token)"
+    },
+    {
+      "table_name": "reservations",
+      "conname": "reservations_status_check",
+      "contype": "c",
+      "definition": "CHECK ((status = ANY (ARRAY['RESERVED'::text, 'DISTRIBUTED'::text, 'RETURNED'::text, 'CANCELLED'::text])))"
+    },
+    {
+      "table_name": "reservations",
+      "conname": "reservations_unit_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (unit_id) REFERENCES machsan.instructor_units(id)"
+    },
+    {
+      "table_name": "scout_teams",
+      "conname": "scout_teams_name_key",
+      "contype": "u",
+      "definition": "UNIQUE (name)"
+    },
+    {
+      "table_name": "scout_teams",
+      "conname": "scout_teams_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "users",
+      "conname": "users_phone_key",
+      "contype": "u",
+      "definition": "UNIQUE (phone)"
+    },
+    {
+      "table_name": "users",
+      "conname": "users_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "users",
+      "conname": "users_role_check",
+      "contype": "c",
+      "definition": "CHECK ((role = ANY (ARRAY['INSTRUCTOR'::text, 'STAFF'::text, 'ADMIN'::text])))"
+    },
+    {
+      "table_name": "users",
+      "conname": "users_team_id_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (team_id) REFERENCES machsan.scout_teams(id)"
+    },
+    {
+      "table_name": "weekly_schedules",
+      "conname": "weekly_schedules_opening_minutes_check",
+      "contype": "c",
+      "definition": "CHECK ((opening_minutes > 0))"
+    },
+    {
+      "table_name": "weekly_schedules",
+      "conname": "weekly_schedules_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "weekly_schedules",
+      "conname": "weekly_schedules_waiting_minutes_check",
+      "contype": "c",
+      "definition": "CHECK ((waiting_minutes >= 0))"
+    },
+    {
+      "table_name": "weekly_schedules",
+      "conname": "weekly_schedules_weekday_check",
+      "contype": "c",
+      "definition": "CHECK (((weekday >= 0) AND (weekday <= 6)))"
+    }
+  ],
+  "indexes": [
+    {
+      "tablename": "activities",
+      "indexname": "activities_pkey",
+      "indexdef": "CREATE UNIQUE INDEX activities_pkey ON machsan.activities USING btree (id)"
+    },
+    {
+      "tablename": "activities",
+      "indexname": "activities_schedule_key_key",
+      "indexdef": "CREATE UNIQUE INDEX activities_schedule_key_key ON machsan.activities USING btree (schedule_key)"
+    },
+    {
+      "tablename": "activities",
+      "indexname": "activities_starts_at_idx",
+      "indexdef": "CREATE INDEX activities_starts_at_idx ON machsan.activities USING btree (starts_at)"
+    },
+    {
+      "tablename": "application_settings",
+      "indexname": "application_settings_pkey",
+      "indexdef": "CREATE UNIQUE INDEX application_settings_pkey ON machsan.application_settings USING btree (key)"
+    },
+    {
+      "tablename": "audit_logs",
+      "indexname": "audit_logs_created_at_idx",
+      "indexdef": "CREATE INDEX audit_logs_created_at_idx ON machsan.audit_logs USING btree (created_at DESC)"
+    },
+    {
+      "tablename": "audit_logs",
+      "indexname": "audit_logs_pkey",
+      "indexdef": "CREATE UNIQUE INDEX audit_logs_pkey ON machsan.audit_logs USING btree (id)"
+    },
+    {
+      "tablename": "background_jobs",
+      "indexname": "background_jobs_pkey",
+      "indexdef": "CREATE UNIQUE INDEX background_jobs_pkey ON machsan.background_jobs USING btree (id)"
+    },
+    {
+      "tablename": "equipment_loans",
+      "indexname": "equipment_loans_pkey",
+      "indexdef": "CREATE UNIQUE INDEX equipment_loans_pkey ON machsan.equipment_loans USING btree (id)"
+    },
+    {
+      "tablename": "equipment_loans",
+      "indexname": "equipment_loans_reservation_id_key",
+      "indexdef": "CREATE UNIQUE INDEX equipment_loans_reservation_id_key ON machsan.equipment_loans USING btree (reservation_id)"
+    },
+    {
+      "tablename": "equipment_loans",
+      "indexname": "equipment_loans_returned_at_idx",
+      "indexdef": "CREATE INDEX equipment_loans_returned_at_idx ON machsan.equipment_loans USING btree (returned_at) WHERE (returned_at IS NULL)"
+    },
+    {
+      "tablename": "instructor_unit_members",
+      "indexname": "instructor_unit_members_pkey",
+      "indexdef": "CREATE UNIQUE INDEX instructor_unit_members_pkey ON machsan.instructor_unit_members USING btree (user_id)"
+    },
+    {
+      "tablename": "instructor_unit_members",
+      "indexname": "instructor_unit_members_unit_id_idx",
+      "indexdef": "CREATE INDEX instructor_unit_members_unit_id_idx ON machsan.instructor_unit_members USING btree (unit_id)"
+    },
+    {
+      "tablename": "instructor_units",
+      "indexname": "instructor_units_pkey",
+      "indexdef": "CREATE UNIQUE INDEX instructor_units_pkey ON machsan.instructor_units USING btree (id)"
+    },
+    {
+      "tablename": "inventory_items",
+      "indexname": "inventory_items_pkey",
+      "indexdef": "CREATE UNIQUE INDEX inventory_items_pkey ON machsan.inventory_items USING btree (id)"
+    },
+    {
+      "tablename": "inventory_transactions",
+      "indexname": "inventory_transactions_pkey",
+      "indexdef": "CREATE UNIQUE INDEX inventory_transactions_pkey ON machsan.inventory_transactions USING btree (id)"
+    },
+    {
+      "tablename": "inventory_transactions",
+      "indexname": "inventory_transactions_reservation_id_action_key",
+      "indexdef": "CREATE UNIQUE INDEX inventory_transactions_reservation_id_action_key ON machsan.inventory_transactions USING btree (reservation_id, action)"
+    },
+    {
+      "tablename": "migrations",
+      "indexname": "migrations_pkey",
+      "indexdef": "CREATE UNIQUE INDEX migrations_pkey ON machsan.migrations USING btree (version)"
+    },
+    {
+      "tablename": "operation_lock",
+      "indexname": "operation_lock_pkey",
+      "indexdef": "CREATE UNIQUE INDEX operation_lock_pkey ON machsan.operation_lock USING btree (id)"
+    },
+    {
+      "tablename": "partnership_requests",
+      "indexname": "partnership_requests_pkey",
+      "indexdef": "CREATE UNIQUE INDEX partnership_requests_pkey ON machsan.partnership_requests USING btree (id)"
+    },
+    {
+      "tablename": "partnership_requests",
+      "indexname": "unique_pending_pair",
+      "indexdef": "CREATE UNIQUE INDEX unique_pending_pair ON machsan.partnership_requests USING btree (LEAST(sender_id, recipient_id), GREATEST(sender_id, recipient_id)) WHERE (status = 'PENDING'::text)"
+    },
+    {
+      "tablename": "queue_entries",
+      "indexname": "queue_entries_activity_id_position_key",
+      "indexdef": "CREATE UNIQUE INDEX queue_entries_activity_id_position_key ON machsan.queue_entries USING btree (activity_id, \"position\")"
+    },
+    {
+      "tablename": "queue_entries",
+      "indexname": "queue_entries_activity_id_state_position_idx",
+      "indexdef": "CREATE INDEX queue_entries_activity_id_state_position_idx ON machsan.queue_entries USING btree (activity_id, state, \"position\")"
+    },
+    {
+      "tablename": "queue_entries",
+      "indexname": "queue_entries_activity_id_unit_id_key",
+      "indexdef": "CREATE UNIQUE INDEX queue_entries_activity_id_unit_id_key ON machsan.queue_entries USING btree (activity_id, unit_id)"
+    },
+    {
+      "tablename": "queue_entries",
+      "indexname": "queue_entries_pkey",
+      "indexdef": "CREATE UNIQUE INDEX queue_entries_pkey ON machsan.queue_entries USING btree (id)"
+    },
+    {
+      "tablename": "queue_offers",
+      "indexname": "queue_offers_entry_id_key",
+      "indexdef": "CREATE UNIQUE INDEX queue_offers_entry_id_key ON machsan.queue_offers USING btree (entry_id)"
+    },
+    {
+      "tablename": "queue_offers",
+      "indexname": "queue_offers_expires_at_idx",
+      "indexdef": "CREATE INDEX queue_offers_expires_at_idx ON machsan.queue_offers USING btree (expires_at) WHERE (state = 'ACTIVE'::text)"
+    },
+    {
+      "tablename": "queue_offers",
+      "indexname": "queue_offers_pkey",
+      "indexdef": "CREATE UNIQUE INDEX queue_offers_pkey ON machsan.queue_offers USING btree (id)"
+    },
+    {
+      "tablename": "rate_limits",
+      "indexname": "rate_limits_pkey",
+      "indexdef": "CREATE UNIQUE INDEX rate_limits_pkey ON machsan.rate_limits USING btree (key)"
+    },
+    {
+      "tablename": "reservations",
+      "indexname": "reservations_activity_id_unit_id_key",
+      "indexdef": "CREATE UNIQUE INDEX reservations_activity_id_unit_id_key ON machsan.reservations USING btree (activity_id, unit_id)"
+    },
+    {
+      "tablename": "reservations",
+      "indexname": "reservations_pkey",
+      "indexdef": "CREATE UNIQUE INDEX reservations_pkey ON machsan.reservations USING btree (id)"
+    },
+    {
+      "tablename": "reservations",
+      "indexname": "reservations_qr_token_key",
+      "indexdef": "CREATE UNIQUE INDEX reservations_qr_token_key ON machsan.reservations USING btree (qr_token)"
+    },
+    {
+      "tablename": "reservations",
+      "indexname": "reservations_status_activity_id_idx",
+      "indexdef": "CREATE INDEX reservations_status_activity_id_idx ON machsan.reservations USING btree (status, activity_id)"
+    },
+    {
+      "tablename": "scout_teams",
+      "indexname": "scout_teams_name_key",
+      "indexdef": "CREATE UNIQUE INDEX scout_teams_name_key ON machsan.scout_teams USING btree (name)"
+    },
+    {
+      "tablename": "scout_teams",
+      "indexname": "scout_teams_pkey",
+      "indexdef": "CREATE UNIQUE INDEX scout_teams_pkey ON machsan.scout_teams USING btree (id)"
+    },
+    {
+      "tablename": "users",
+      "indexname": "users_phone_key",
+      "indexdef": "CREATE UNIQUE INDEX users_phone_key ON machsan.users USING btree (phone)"
+    },
+    {
+      "tablename": "users",
+      "indexname": "users_pkey",
+      "indexdef": "CREATE UNIQUE INDEX users_pkey ON machsan.users USING btree (id)"
+    },
+    {
+      "tablename": "weekly_schedules",
+      "indexname": "weekly_schedules_pkey",
+      "indexdef": "CREATE UNIQUE INDEX weekly_schedules_pkey ON machsan.weekly_schedules USING btree (id)"
+    }
+  ],
+  "triggers": [
+    {
+      "tgname": "snapshot_borrowers",
+      "tgenabled": "O",
+      "definition": "CREATE TRIGGER snapshot_borrowers BEFORE INSERT ON machsan.reservations FOR EACH ROW EXECUTE FUNCTION machsan.reservation_snapshot()"
+    }
+  ],
+  "functions": [
+    {
+      "proname": "reservation_snapshot",
+      "prosrc": " BEGIN\n SELECT string_agg(u.name,' ו' ORDER BY u.id),string_agg(DISTINCT t.name,', '),string_agg(u.phone,','),array_agg(u.id) INTO NEW.names,NEW.team_name,NEW.borrower_phones,NEW.borrower_ids FROM instructor_unit_members m JOIN users u ON u.id=m.user_id LEFT JOIN scout_teams t ON t.id=u.team_id WHERE m.unit_id=NEW.unit_id;\n RETURN NEW; END ",
+      "proconfig": [
+        "search_path=machsan, public"
+      ],
+      "prosecdef": false
+    }
+  ]
+}

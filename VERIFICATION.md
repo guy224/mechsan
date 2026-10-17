@@ -39,3 +39,24 @@ Date: 17 October 2026 (Asia/Jerusalem).
 4. Kill and restart the actual worker process during offers; verify rollback/retry and unchanged deadlines. Check monitoring alerts on `/api/health` failure.
 5. Test iOS Safari and Android Chrome installation, camera allow/deny, duplicate scans, offline return, refresh, and two devices for a partnered unit.
 6. Verify HTTPS, secure cookies, secret storage, recovery procedure, operational inventory, backup restore, and staff training.
+
+## Neon migration verification — 2026-10-17
+
+This section supersedes earlier Supabase production conclusions.
+
+Observed Netlify production failure: `unsupported startup parameter in options: search_path`. Fixed by removing startup options and schema-qualifying runtime SQL. Pool remains two connections per warm serverless instance. Neon TLS is verified in development and production; idle errors are handled and sanitized. Transactions reject a missing singleton lock; rollback errors destroy the connection without masking the original failure.
+
+Neon production SQL Editor was inspected read-only: 19 tables, 94 columns, 37 indexes, enabled snapshot trigger/function, migration 001, singleton lock, two weekly schedules, both background job rows, zero users. Catalog fingerprints for columns/defaults, constraints/foreign keys, indexes, trigger definition and function body/config all exactly matched a fresh execution of db/001_initial.sql. Fingerprints (db/verify-fingerprints.sql, public search_path):
+- columns: a71c74789104d18dba5d33415e1a4adf
+- constraints: c895fcc7c814b079dbbf6945c59d81e4
+- indexes: f7a006681952502f99baacb7832c92f0
+- triggers: 6a651d81c59a994a30c8eece95b0dd84
+- functions: 358e5995be59cea4459f6dfbbb0a8cee
+
+The SQL Editor role neondb_owner has required schema/table/function access. This is owner access, not evidence of least privilege. No production schema or data was changed during inspection. The old Supabase project was not modified.
+
+Local: 35 tests pass (29 workflow tests plus six pool/TLS/rollback/logging tests). Workflow tests now run without relying on machsan in search_path. HTTP integration passes registration, password login/session, authorization, CSRF origin rejection, partnership acceptance, shared waiting room, random queue opening, simultaneous confirmations, QR lookup/distribution/repeat scan/return, logout and account recovery/session revocation. These HTTP tests used isolated PGlite via its socket adapter, not Neon or native PostgreSQL. The actual worker process ran locally during these tests. Read-only verify:db passed on the isolated database.
+
+Native PostgreSQL startup was attempted but the execution sandbox denied shared memory creation (shmget: Operation not permitted). Therefore native 300-user concurrency and multi-worker/crash recovery remain release gates; PGlite concurrency results cannot establish native concurrency behavior. Run the existing guarded TEST_DATABASE_URL workflow only against a disposable database named machsan_test, with ALLOW_DESTRUCTIVE_NATIVE_TESTS=YES; never point this test at production.
+
+Physical iPhone Safari/Android Chrome camera permission, scanning, home-screen installation and standalone behavior remain manual tests. Manifest, RTL direction, HTTPS camera policy, ZXing fallback and non-caching of API responses were reviewed; this is not physical-device verification. No persistent hosted worker, initial Neon administrator or production inventory is created by this change.

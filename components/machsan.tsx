@@ -72,6 +72,7 @@ type State = {
   requests: Person[];
   announcement: string;
   serverTime: string;
+  realtimeEnabled?: boolean;
   configured: boolean;
   jobs: { id: string; last_success: string | null }[];
 };
@@ -135,7 +136,10 @@ export function Machsan() {
     [offset, setOffset] = useState(0),
     [signup, setSignup] = useState(false),
     [selectedActivityId, setSelectedActivityId] = useState("");
+  const refreshing = useRef(false);
   const reload = useCallback(async () => {
+    if (refreshing.current) return;
+    refreshing.current = true;
     try {
       const s = await api<State>("state");
       setState(s);
@@ -146,6 +150,7 @@ export function Machsan() {
       if ((e as Error).message !== "יש להתחבר כדי להמשיך")
         setError((e as Error).message);
     } finally {
+      refreshing.current = false;
       setLoading(false);
     }
   }, []);
@@ -154,7 +159,7 @@ export function Machsan() {
       .then(setTeams)
       .catch((e) => setError(e.message));
     reload();
-    const poll = setInterval(reload, 4000);
+
     const clock = setInterval(() => setNow(Date.now()), 1000);
     const off = () => setOffline(true),
       on = () => {
@@ -167,7 +172,6 @@ export function Machsan() {
     if ("serviceWorker" in navigator)
       navigator.serviceWorker.register("/sw.js");
     return () => {
-      clearInterval(poll);
       clearInterval(clock);
       window.removeEventListener("offline", off);
       window.removeEventListener("online", on);
@@ -176,6 +180,14 @@ export function Machsan() {
   }, [reload]);
   useEffect(() => {
     if (!state?.user.id) return;
+    const poll = setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine)
+        void reload();
+    }, 4000);
+    return () => clearInterval(poll);
+  }, [state?.user.id, reload]);
+  useEffect(() => {
+    if (!state?.user.id || !state.realtimeEnabled) return;
     const events = new EventSource("/api/events");
     let timer: ReturnType<typeof setTimeout> | undefined;
     events.addEventListener("change", () => {
@@ -189,7 +201,7 @@ export function Machsan() {
       events.close();
       clearTimeout(timer);
     };
-  }, [state?.user.id, reload]);
+  }, [state?.user.id, state?.realtimeEnabled, reload]);
   const mutate: Mutate = async (path, body) => {
     setNotice("");
     if (!navigator.onLine) {

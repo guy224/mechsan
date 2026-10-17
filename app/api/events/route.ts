@@ -1,9 +1,11 @@
 import { currentUser } from "@/lib/auth";
 import { eventBus } from "@/lib/events";
+import { realtimeEnabled } from "@/lib/db";
 export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   try {
     await currentUser();
+    if (!realtimeEnabled()) return new Response(null, { status: 204 });
     const bus = await eventBus();
     const encoder = new TextEncoder();
     let cleanup = () => {};

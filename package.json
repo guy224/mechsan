@@ -13,7 +13,8 @@
     "bootstrap": "node --env-file-if-exists=.env --import tsx scripts/bootstrap.ts",
     "worker": "node --env-file-if-exists=.env --import tsx scripts/worker.ts",
     "test:http": "node --env-file-if-exists=.env --import tsx scripts/smoke.ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "verify:db": "node --env-file-if-exists=.env --import tsx scripts/verify-db.ts"
   },
   "dependencies": {
     "next": "16.4.2",

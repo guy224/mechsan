@@ -36,7 +36,7 @@ function tx<T>(fn: (c: DB) => Promise<T>): Promise<T> {
       try {
         await client.query("BEGIN");
         await client.query(
-          "SELECT id FROM operation_lock WHERE id=1 FOR UPDATE",
+          "SELECT id FROM machsan.operation_lock WHERE id=1 FOR UPDATE",
         );
         const r = await fn(client);
         await client.query("COMMIT");
@@ -51,7 +51,9 @@ function tx<T>(fn: (c: DB) => Promise<T>): Promise<T> {
   const task = mutex.then(async () => {
     await pg.exec("BEGIN");
     try {
-      await pg.query("SELECT id FROM operation_lock WHERE id=1 FOR UPDATE");
+      await pg.query(
+        "SELECT id FROM machsan.operation_lock WHERE id=1 FOR UPDATE",
+      );
       const r = await fn(db);
       await pg.exec("COMMIT");
       return r;
@@ -70,21 +72,21 @@ async function join(c: DB, userId: string, activityId: string, at: Date) {
 async function person(name = "מדריך"): Promise<User> {
   const id = randomUUID();
   await db.query(
-    "INSERT INTO users(id,name,phone,password_hash,team_id) VALUES($1,$2,$3,'test',$4)",
+    "INSERT INTO machsan.users(id,name,phone,password_hash,team_id) VALUES($1,$2,$3,'test',$4)",
     [id, name, id, team],
   );
   const uid = randomUUID();
-  await db.query("INSERT INTO instructor_units(id) VALUES($1)", [uid]);
-  await db.query("INSERT INTO instructor_unit_members VALUES($1,$2)", [
+  await db.query("INSERT INTO machsan.instructor_units(id) VALUES($1)", [uid]);
+  await db.query("INSERT INTO machsan.instructor_unit_members VALUES($1,$2)", [
     id,
     uid,
   ]);
-  return await one<User>(db, "SELECT * FROM users WHERE id=$1", [id]);
+  return await one<User>(db, "SELECT * FROM machsan.users WHERE id=$1", [id]);
 }
 async function activity(offset = 0) {
   const id = randomUUID();
   await db.query(
-    "INSERT INTO activities(id,title,starts_at,ends_at,waiting_at,opens_at,closes_at) VALUES($1,'פעולה',$2,$3,$4,$5,$6)",
+    "INSERT INTO machsan.activities(id,title,starts_at,ends_at,waiting_at,opens_at,closes_at) VALUES($1,'פעולה',$2,$3,$4,$5,$6)",
     [
       id,
       new Date(+now + 3600000 + offset),
@@ -98,17 +100,17 @@ async function activity(offset = 0) {
 }
 async function resetStock(total = 1) {
   await db.query(
-    "UPDATE reservations SET status='RETURNED' WHERE status IN ('RESERVED','DISTRIBUTED')",
+    "UPDATE machsan.reservations SET status='RETURNED' WHERE status IN ('RESERVED','DISTRIBUTED')",
   );
   await db.query(
-    "UPDATE equipment_loans SET returned_at=now() WHERE returned_at IS NULL",
+    "UPDATE machsan.equipment_loans SET returned_at=now() WHERE returned_at IS NULL",
   );
   await db.query(
-    "UPDATE queue_offers SET state='CANCELLED' WHERE state='ACTIVE'",
+    "UPDATE machsan.queue_offers SET state='CANCELLED' WHERE state='ACTIVE'",
   );
-  await db.query("UPDATE activities SET cancelled=true");
+  await db.query("UPDATE machsan.activities SET cancelled=true");
   await db.query(
-    "INSERT INTO inventory_items(id,name,total,damaged) VALUES('mat','מחצלות',$1,0) ON CONFLICT(id) DO UPDATE SET total=$1,damaged=0",
+    "INSERT INTO machsan.inventory_items(id,name,total,damaged) VALUES('mat','מחצלות',$1,0) ON CONFLICT(id) DO UPDATE SET total=$1,damaged=0",
     [total],
   );
 }
@@ -127,14 +129,15 @@ beforeAll(async () => {
     real = new Pool({
       connectionString: process.env.TEST_DATABASE_URL,
       max: 20,
-      options: "-c search_path=machsan,public",
     });
     await real.query("DROP SCHEMA IF EXISTS machsan CASCADE");
     await real.query(await readFile("db/001_initial.sql", "utf8"));
+    await real.query("SET search_path TO public");
     db = real;
   } else {
     pg = new PGlite();
     await pg.exec(await readFile("db/001_initial.sql", "utf8"));
+    await pg.exec("SET search_path TO public");
     db = {
       query: async <T>(sql: string, values?: unknown[]) => {
         const r = await pg.query<T>(sql, values);
@@ -145,12 +148,14 @@ beforeAll(async () => {
   team = (
     await one<{ id: string }>(
       db,
-      "INSERT INTO scout_teams(name) VALUES('אורנים') RETURNING id",
+      "INSERT INTO machsan.scout_teams(name) VALUES('אורנים') RETURNING id",
     )
   ).id;
   actor = await person("מנהל");
   actor.role = "ADMIN";
-  await db.query("UPDATE users SET role='ADMIN' WHERE id=$1", [actor.id]);
+  await db.query("UPDATE machsan.users SET role='ADMIN' WHERE id=$1", [
+    actor.id,
+  ]);
 }, 30000);
 afterAll(async () => {
   if (real) await real.end();
@@ -170,7 +175,9 @@ describe("identity and access", () => {
         teamId: team,
       }),
     );
-    const u = await one<User>(db, "SELECT * FROM users WHERE id=$1", [r.id]);
+    const u = await one<User>(db, "SELECT * FROM machsan.users WHERE id=$1", [
+      r.id,
+    ]);
     expect(u.role).toBe("INSTRUCTOR");
     expect(u.password_hash).toContain("$argon2id$");
     expect(await unit(db, r.id)).toBeTruthy();
@@ -195,7 +202,9 @@ describe("identity and access", () => {
         role: "ADMIN",
       }),
     );
-    const u = await one<User>(db, "SELECT * FROM users WHERE id=$1", [r.id]);
+    const u = await one<User>(db, "SELECT * FROM machsan.users WHERE id=$1", [
+      r.id,
+    ]);
     expect(u.role).toBe("INSTRUCTOR");
     expect(() => staff(u)).toThrow();
     expect(() => admin({ ...u, role: "STAFF" })).toThrow();
@@ -218,7 +227,7 @@ describe("identity and access", () => {
     await tx((c) => partnership(c, a, "request", b.id));
     const r = await one<{ id: string }>(
       db,
-      "SELECT id FROM partnership_requests WHERE sender_id=$1",
+      "SELECT id FROM machsan.partnership_requests WHERE sender_id=$1",
       [a.id],
     );
     await tx((c) => partnership(c, b, "accept", r.id));
@@ -240,7 +249,7 @@ describe("persistent queue and inventory", () => {
     await resetStock(4);
     const a = await activity();
     const opening = new Date(+now + 10000);
-    await db.query("UPDATE activities SET opens_at=$2 WHERE id=$1", [
+    await db.query("UPDATE machsan.activities SET opens_at=$2 WHERE id=$1", [
       a,
       opening,
     ]);
@@ -252,7 +261,7 @@ describe("persistent queue and inventory", () => {
     expect(
       (
         await db.query(
-          "SELECT id FROM queue_entries WHERE activity_id=$1 AND state='WAITING_ROOM'",
+          "SELECT id FROM machsan.queue_entries WHERE activity_id=$1 AND state='WAITING_ROOM'",
           [a],
         )
       ).rows,
@@ -260,7 +269,7 @@ describe("persistent queue and inventory", () => {
     await tx((c) => tick(c, opening));
     const q = (
       await db.query<{ unit_id: string; position: number; state: string }>(
-        "SELECT * FROM queue_entries WHERE activity_id=$1 ORDER BY position",
+        "SELECT * FROM machsan.queue_entries WHERE activity_id=$1 ORDER BY position",
         [a],
       )
     ).rows;
@@ -284,7 +293,7 @@ describe("persistent queue and inventory", () => {
       (
         await one<{ position: number }>(
           db,
-          "SELECT position FROM queue_entries WHERE activity_id=$1 AND unit_id=$2",
+          "SELECT position FROM machsan.queue_entries WHERE activity_id=$1 AND unit_id=$2",
           [a, await unit(db, late.id)],
         )
       ).position,
@@ -292,14 +301,18 @@ describe("persistent queue and inventory", () => {
     expect(await capacity(db, a)).toBe(0);
     await tx((c) => join(c, late.id, a, now));
     expect(
-      (await db.query("SELECT id FROM queue_entries WHERE activity_id=$1", [a]))
-        .rows,
+      (
+        await db.query(
+          "SELECT id FROM machsan.queue_entries WHERE activity_id=$1",
+          [a],
+        )
+      ).rows,
     ).toHaveLength(301);
   }, 60000);
   it("keeps simultaneous queue workers idempotent under row locking", async () => {
     await resetStock();
     const a = await activity();
-    await db.query("UPDATE activities SET opens_at=$2 WHERE id=$1", [
+    await db.query("UPDATE machsan.activities SET opens_at=$2 WHERE id=$1", [
       a,
       new Date(+now + 10000),
     ]);
@@ -312,7 +325,7 @@ describe("persistent queue and inventory", () => {
     expect(
       (
         await db.query(
-          "SELECT o.id FROM queue_offers o JOIN queue_entries q ON q.id=o.entry_id WHERE q.activity_id=$1 AND o.state='ACTIVE'",
+          "SELECT o.id FROM machsan.queue_offers o JOIN machsan.queue_entries q ON q.id=o.entry_id WHERE q.activity_id=$1 AND o.state='ACTIVE'",
           [a],
         )
       ).rows,
@@ -320,7 +333,7 @@ describe("persistent queue and inventory", () => {
     expect(
       (
         await db.query(
-          "SELECT o.id FROM queue_offers o JOIN queue_entries q ON q.id=o.entry_id WHERE q.activity_id=$1",
+          "SELECT o.id FROM machsan.queue_offers o JOIN machsan.queue_entries q ON q.id=o.entry_id WHERE q.activity_id=$1",
           [a],
         )
       ).rows,
@@ -334,7 +347,7 @@ describe("persistent queue and inventory", () => {
     await tx((c) => partnership(c, x, "request", y.id));
     const request = await one<{ id: string }>(
       db,
-      "SELECT id FROM partnership_requests WHERE sender_id=$1",
+      "SELECT id FROM machsan.partnership_requests WHERE sender_id=$1",
       [x.id],
     );
     await tx((c) => partnership(c, y, "accept", request.id));
@@ -348,8 +361,12 @@ describe("persistent queue and inventory", () => {
     ]);
     expect(ids[0].id).toBe(ids[1].id);
     expect(
-      (await db.query("SELECT id FROM queue_entries WHERE activity_id=$1", [a]))
-        .rows,
+      (
+        await db.query(
+          "SELECT id FROM machsan.queue_entries WHERE activity_id=$1",
+          [a],
+        )
+      ).rows,
     ).toHaveLength(1);
     expect(await capacity(db, a)).toBe(0);
     await expect(
@@ -371,7 +388,7 @@ describe("persistent queue and inventory", () => {
       (
         await one<{ state: string }>(
           db,
-          "SELECT state FROM queue_entries WHERE activity_id=$1 AND unit_id=$2",
+          "SELECT state FROM machsan.queue_entries WHERE activity_id=$1 AND unit_id=$2",
           [a, await unit(db, x.id)],
         )
       ).state,
@@ -380,14 +397,18 @@ describe("persistent queue and inventory", () => {
       (
         await one<{ state: string }>(
           db,
-          "SELECT state FROM queue_entries WHERE activity_id=$1 AND unit_id=$2",
+          "SELECT state FROM machsan.queue_entries WHERE activity_id=$1 AND unit_id=$2",
           [a, await unit(db, y.id)],
         )
       ).state,
     ).toBe("OFFERED");
     await tx((c) => tick(c, new Date(+now + 90001)));
     expect(
-      (await db.query("SELECT id FROM queue_offers WHERE state='ACTIVE'")).rows,
+      (
+        await db.query(
+          "SELECT id FROM machsan.queue_offers WHERE state='ACTIVE'",
+        )
+      ).rows,
     ).toHaveLength(1);
   });
   it("accepts immediately before deadline, cancellation frees a hold for next unit", async () => {
@@ -403,7 +424,7 @@ describe("persistent queue and inventory", () => {
       (
         await one<{ state: string }>(
           db,
-          "SELECT state FROM queue_entries WHERE activity_id=$1 AND unit_id=$2",
+          "SELECT state FROM machsan.queue_entries WHERE activity_id=$1 AND unit_id=$2",
           [a, await unit(db, y.id)],
         )
       ).state,
@@ -421,7 +442,7 @@ describe("persistent queue and inventory", () => {
     const token = (
       await one<{ qr_token: string }>(
         db,
-        "SELECT qr_token FROM reservations WHERE id=$1",
+        "SELECT qr_token FROM machsan.reservations WHERE id=$1",
         [r.id],
       )
     ).qr_token;
@@ -433,7 +454,7 @@ describe("persistent queue and inventory", () => {
     expect(
       (
         await db.query(
-          "SELECT * FROM equipment_loans WHERE reservation_id=$1",
+          "SELECT * FROM machsan.equipment_loans WHERE reservation_id=$1",
           [r.id],
         )
       ).rows,
@@ -449,7 +470,7 @@ describe("persistent queue and inventory", () => {
     expect(
       (
         await db.query(
-          "SELECT * FROM inventory_transactions WHERE reservation_id=$1",
+          "SELECT * FROM machsan.inventory_transactions WHERE reservation_id=$1",
           [r.id],
         )
       ).rows,
@@ -473,7 +494,7 @@ describe("persistent queue and inventory", () => {
       (
         await one<{ status: string }>(
           db,
-          "SELECT status FROM reservations WHERE id=$1",
+          "SELECT status FROM machsan.reservations WHERE id=$1",
           [r.id],
         )
       ).status,
@@ -492,7 +513,7 @@ describe("persistent queue and inventory", () => {
     expect(
       await one(
         db,
-        "SELECT id FROM audit_logs WHERE action='MANUAL_RESERVATION'",
+        "SELECT id FROM machsan.audit_logs WHERE action='MANUAL_RESERVATION'",
       ),
     ).toBeTruthy();
   });
@@ -513,13 +534,17 @@ describe("persistent queue and inventory", () => {
     await tx((c) => join(c, x.id, a, now));
     const before = await one(
       db,
-      "SELECT * FROM queue_entries WHERE activity_id=$1",
+      "SELECT * FROM machsan.queue_entries WHERE activity_id=$1",
       [a],
     );
     await tx((c) => tick(c, new Date(+now + 1000)));
     await tx((c) => tick(c, new Date(+now + 1000)));
     expect(
-      await one(db, "SELECT * FROM queue_entries WHERE activity_id=$1", [a]),
+      await one(
+        db,
+        "SELECT * FROM machsan.queue_entries WHERE activity_id=$1",
+        [a],
+      ),
     ).toEqual(before);
   });
 });
@@ -552,7 +577,7 @@ describe("recovery and boundary conditions", () => {
       (
         await one<{ state: string }>(
           db,
-          "SELECT state FROM queue_entries WHERE activity_id=$1",
+          "SELECT state FROM machsan.queue_entries WHERE activity_id=$1",
           [a],
         )
       ).state,
@@ -561,7 +586,7 @@ describe("recovery and boundary conditions", () => {
     expect(
       (
         await db.query(
-          "SELECT o.id FROM queue_offers o JOIN queue_entries q ON q.id=o.entry_id WHERE q.activity_id=$1 AND o.state='ACTIVE'",
+          "SELECT o.id FROM machsan.queue_offers o JOIN machsan.queue_entries q ON q.id=o.entry_id WHERE q.activity_id=$1 AND o.state='ACTIVE'",
           [a],
         )
       ).rows,
@@ -585,11 +610,13 @@ describe("recovery and boundary conditions", () => {
     await resetStock();
     const a = await activity(),
       x = await person();
-    await db.query("UPDATE activities SET paused=true WHERE id=$1", [a]);
+    await db.query("UPDATE machsan.activities SET paused=true WHERE id=$1", [
+      a,
+    ]);
     await tx((c) => join(c, x.id, a, now));
     const q = await one<{ position: number; state: string }>(
       db,
-      "SELECT * FROM queue_entries WHERE activity_id=$1",
+      "SELECT * FROM machsan.queue_entries WHERE activity_id=$1",
       [a],
     );
     expect(q.state).toBe("QUEUED");
@@ -601,7 +628,7 @@ describe("recovery and boundary conditions", () => {
     );
     const resumed = await one<{ position: number; state: string }>(
       db,
-      "SELECT * FROM queue_entries WHERE activity_id=$1",
+      "SELECT * FROM machsan.queue_entries WHERE activity_id=$1",
       [a],
     );
     expect(resumed.position).toBe(q.position);
@@ -615,7 +642,7 @@ describe("recovery and boundary conditions", () => {
       (
         await one<{ state: string }>(
           db,
-          "SELECT state FROM queue_entries WHERE activity_id=$1",
+          "SELECT state FROM machsan.queue_entries WHERE activity_id=$1",
           [a],
         )
       ).state,
@@ -628,7 +655,7 @@ describe("recovery and boundary conditions", () => {
     ).rejects.toThrow("קוד לא מוכר");
     const inv = await one<{ total: number }>(
       db,
-      "SELECT total FROM inventory_items WHERE id='mat'",
+      "SELECT total FROM machsan.inventory_items WHERE id='mat'",
     );
     expect(inv.total).toBe(2);
   });
@@ -639,7 +666,7 @@ describe("recovery and boundary conditions", () => {
     await tx((c) => manual(c, actor, x.id, a, "מקרה חריג לצורך בדיקה"));
     const r = await one<{ qr_token: string }>(
       db,
-      "SELECT qr_token FROM reservations WHERE activity_id=$1",
+      "SELECT qr_token FROM machsan.reservations WHERE activity_id=$1",
       [a],
     );
     await expect(
@@ -655,7 +682,7 @@ describe("recovery and boundary conditions", () => {
     const token = (
       await one<{ qr_token: string }>(
         db,
-        "SELECT qr_token FROM reservations WHERE id=$1",
+        "SELECT qr_token FROM machsan.reservations WHERE id=$1",
         [r.id],
       )
     ).qr_token;
@@ -670,7 +697,7 @@ describe("recovery and boundary conditions", () => {
       (
         await one<{ status: string }>(
           db,
-          "SELECT status FROM reservations WHERE id=$1",
+          "SELECT status FROM machsan.reservations WHERE id=$1",
           [r.id],
         )
       ).status,
@@ -682,9 +709,12 @@ describe("recovery and boundary conditions", () => {
       y = await person();
     const other = await one<{ id: string }>(
       db,
-      "INSERT INTO scout_teams(name) VALUES('קבוצה נוספת') RETURNING id",
+      "INSERT INTO machsan.scout_teams(name) VALUES('קבוצה נוספת') RETURNING id",
     );
-    await db.query("UPDATE users SET team_id=$1 WHERE id=$2", [other.id, y.id]);
+    await db.query("UPDATE machsan.users SET team_id=$1 WHERE id=$2", [
+      other.id,
+      y.id,
+    ]);
     await expect(
       tx((c) => partnership(c, x, "request", y.id)),
     ).rejects.toThrow();
@@ -695,12 +725,15 @@ describe("recovery and boundary conditions", () => {
       x = await person("שם היסטורי");
     await tx((c) => join(c, x.id, a, now));
     const r = await tx((c) => confirm(c, x.id, a, now));
-    await db.query("UPDATE users SET name=$1 WHERE id=$2", ["שם חדש", x.id]);
+    await db.query("UPDATE machsan.users SET name=$1 WHERE id=$2", [
+      "שם חדש",
+      x.id,
+    ]);
     expect(
       (
         await one<{ names: string }>(
           db,
-          "SELECT names FROM reservations WHERE id=$1",
+          "SELECT names FROM machsan.reservations WHERE id=$1",
           [r.id],
         )
       ).names,

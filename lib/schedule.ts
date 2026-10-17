@@ -25,7 +25,7 @@ export async function generateActivities(db: DB, now = new Date()) {
       end_time: string;
       opening_minutes: number;
       waiting_minutes: number;
-    }>("SELECT * FROM weekly_schedules WHERE active")
+    }>("SELECT * FROM machsan.weekly_schedules WHERE active")
   ).rows;
   const today = formatInTimeZone(now, "Asia/Jerusalem", "yyyy-MM-dd");
   for (let i = 0; i < 28; i++) {
@@ -41,7 +41,7 @@ export async function generateActivities(db: DB, now = new Date()) {
         s.waiting_minutes,
       );
       await db.query(
-        "INSERT INTO activities(title,starts_at,ends_at,opens_at,waiting_at,closes_at,schedule_key) VALUES('פעולה שבטית',$1,$2,$3,$4,$1,$5) ON CONFLICT(schedule_key) DO NOTHING",
+        "INSERT INTO machsan.activities(title,starts_at,ends_at,opens_at,waiting_at,closes_at,schedule_key) VALUES('פעולה שבטית',$1,$2,$3,$4,$1,$5) ON CONFLICT(schedule_key) DO NOTHING",
         [t.starts, t.ends, t.opens, t.waiting, `${s.id}:${day}`],
       );
     }
