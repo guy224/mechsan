@@ -50,7 +50,7 @@ export function database() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_NOT_CONFIGURED");
   return (pool ??= new Pool({
     connectionString: databaseUrl(),
-    ssl: databaseTls(),
+ssl: databaseTls(),
 max: 2,
 idleTimeoutMillis: 10000,
 connectionTimeoutMillis: 5000,
