@@ -51,7 +51,9 @@ export function database() {
   return (pool ??= new Pool({
     connectionString: databaseUrl(),
     ssl: databaseTls(),
-    max: 12,
+max: 2,
+idleTimeoutMillis: 10000,
+connectionTimeoutMillis: 5000,
     options: "-c search_path=machsan,public",
     statement_timeout: 15000,
   }));
