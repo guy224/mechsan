@@ -1,0 +1,19 @@
+import { database, one } from "@/lib/db";
+export const dynamic = "force-dynamic";
+export async function GET() {
+  try {
+    const r = await one<{ healthy: boolean }>(
+      database(),
+      "SELECT coalesce(last_success>now()-interval '30 seconds',false) healthy FROM background_jobs WHERE id='queue'",
+    );
+    return Response.json(
+      { ok: !!r?.healthy },
+      {
+        status: r?.healthy ? 200 : 503,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  } catch {
+    return Response.json({ ok: false }, { status: 503 });
+  }
+}

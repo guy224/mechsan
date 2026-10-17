@@ -1,0 +1,41 @@
+CREATE SCHEMA IF NOT EXISTS machsan;
+REVOKE ALL ON SCHEMA machsan FROM PUBLIC;
+SET search_path TO machsan, public;
+CREATE TABLE IF NOT EXISTS migrations(version text PRIMARY KEY);
+CREATE TABLE operation_lock(id int PRIMARY KEY CHECK(id=1)); INSERT INTO operation_lock VALUES(1);
+CREATE TABLE scout_teams(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL UNIQUE, active boolean NOT NULL DEFAULT true);
+CREATE TABLE users(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, phone text NOT NULL UNIQUE, password_hash text NOT NULL, role text NOT NULL DEFAULT 'INSTRUCTOR' CHECK(role IN ('INSTRUCTOR','STAFF','ADMIN')), team_id uuid REFERENCES scout_teams, disabled boolean NOT NULL DEFAULT false, session_version int NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE instructor_units(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE instructor_unit_members(user_id uuid PRIMARY KEY REFERENCES users, unit_id uuid NOT NULL REFERENCES instructor_units);
+CREATE INDEX ON instructor_unit_members(unit_id);
+CREATE TABLE partnership_requests(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), sender_id uuid NOT NULL REFERENCES users, recipient_id uuid NOT NULL REFERENCES users, status text NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','ACCEPTED','REJECTED')), created_at timestamptz NOT NULL DEFAULT now(), CHECK(sender_id<>recipient_id));
+CREATE UNIQUE INDEX unique_pending_pair ON partnership_requests(least(sender_id,recipient_id),greatest(sender_id,recipient_id)) WHERE status='PENDING';
+CREATE TABLE weekly_schedules(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), weekday int NOT NULL CHECK(weekday BETWEEN 0 AND 6), start_time text NOT NULL, end_time text NOT NULL, opening_minutes int NOT NULL DEFAULT 1440 CHECK(opening_minutes>0), waiting_minutes int NOT NULL DEFAULT 15 CHECK(waiting_minutes>=0), active boolean NOT NULL DEFAULT true);
+INSERT INTO weekly_schedules(weekday,start_time,end_time) VALUES(2,'17:00','19:00'),(5,'16:00','18:30');
+CREATE TABLE activities(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text NOT NULL, starts_at timestamptz NOT NULL, ends_at timestamptz NOT NULL, opens_at timestamptz NOT NULL, waiting_at timestamptz NOT NULL, closes_at timestamptz NOT NULL, cancelled boolean NOT NULL DEFAULT false, paused boolean NOT NULL DEFAULT false, randomized boolean NOT NULL DEFAULT false, schedule_key text UNIQUE, CHECK(waiting_at<=opens_at AND opens_at<closes_at AND starts_at<ends_at));
+CREATE TABLE inventory_items(id text PRIMARY KEY, name text NOT NULL, total int NOT NULL CHECK(total>=0), damaged int NOT NULL CHECK(damaged>=0 AND damaged<=total), requires_return boolean NOT NULL DEFAULT true);
+CREATE TABLE queue_entries(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), activity_id uuid NOT NULL REFERENCES activities, unit_id uuid NOT NULL REFERENCES instructor_units, state text NOT NULL CHECK(state IN ('WAITING_ROOM','QUEUED','OFFERED','RESERVED','OFFER_EXPIRED','WAITLISTED','CANCELLED','CLOSED')), position int, joined_at timestamptz NOT NULL DEFAULT now(), UNIQUE(activity_id,unit_id), UNIQUE(activity_id,position));
+CREATE TABLE queue_offers(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), entry_id uuid NOT NULL UNIQUE REFERENCES queue_entries, expires_at timestamptz NOT NULL, state text NOT NULL CHECK(state IN ('ACTIVE','CONFIRMED','EXPIRED','DECLINED','CANCELLED')));
+CREATE TABLE reservations(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), activity_id uuid NOT NULL REFERENCES activities, unit_id uuid NOT NULL REFERENCES instructor_units, status text NOT NULL CHECK(status IN ('RESERVED','DISTRIBUTED','RETURNED','CANCELLED')), qr_token uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE, names text NOT NULL DEFAULT '', team_name text NOT NULL DEFAULT '', borrower_phones text NOT NULL DEFAULT '', borrower_ids uuid[] NOT NULL DEFAULT '{}', created_by uuid NOT NULL REFERENCES users, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(activity_id,unit_id));
+CREATE TABLE equipment_loans(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), reservation_id uuid NOT NULL UNIQUE REFERENCES reservations, item_id text NOT NULL REFERENCES inventory_items, distributed_by uuid NOT NULL REFERENCES users, distributed_at timestamptz NOT NULL DEFAULT now(), returned_by uuid REFERENCES users, returned_at timestamptz);
+CREATE TABLE inventory_transactions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), reservation_id uuid REFERENCES reservations, actor_id uuid NOT NULL REFERENCES users, action text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(reservation_id,action));
+CREATE TABLE audit_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), actor_id uuid REFERENCES users, action text NOT NULL, details jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE application_settings(key text PRIMARY KEY, value jsonb NOT NULL);
+CREATE TABLE background_jobs(id text PRIMARY KEY, run_at timestamptz NOT NULL DEFAULT now(), attempts int NOT NULL DEFAULT 0, last_success timestamptz, last_error text);
+INSERT INTO background_jobs(id) VALUES('queue'),('schedule');
+CREATE TABLE rate_limits(key text PRIMARY KEY, count int NOT NULL, reset_at timestamptz NOT NULL);
+CREATE INDEX ON queue_entries(activity_id,state,position);
+CREATE INDEX ON queue_offers(expires_at) WHERE state='ACTIVE';
+CREATE INDEX ON reservations(status,activity_id);
+CREATE INDEX ON equipment_loans(returned_at) WHERE returned_at IS NULL;
+CREATE INDEX ON audit_logs(created_at DESC);
+CREATE INDEX ON activities(starts_at);
+-- Private schema is deliberately not exposed through the Supabase Data API.
+REVOKE ALL ON ALL TABLES IN SCHEMA machsan FROM PUBLIC;
+INSERT INTO migrations VALUES('001');
+
+CREATE FUNCTION reservation_snapshot() RETURNS trigger LANGUAGE plpgsql SET search_path=machsan,public AS $$ BEGIN
+ SELECT string_agg(u.name,' ו' ORDER BY u.id),string_agg(DISTINCT t.name,', '),string_agg(u.phone,','),array_agg(u.id) INTO NEW.names,NEW.team_name,NEW.borrower_phones,NEW.borrower_ids FROM instructor_unit_members m JOIN users u ON u.id=m.user_id LEFT JOIN scout_teams t ON t.id=u.team_id WHERE m.unit_id=NEW.unit_id;
+ RETURN NEW; END $$;
+CREATE TRIGGER snapshot_borrowers BEFORE INSERT ON reservations FOR EACH ROW EXECUTE FUNCTION reservation_snapshot();
+REVOKE ALL ON FUNCTION reservation_snapshot() FROM PUBLIC;

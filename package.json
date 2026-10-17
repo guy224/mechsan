@@ -1,0 +1,53 @@
+{
+  "name": "machsan",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "migrate": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts",
+    "bootstrap": "node --env-file-if-exists=.env --import tsx scripts/bootstrap.ts",
+    "worker": "node --env-file-if-exists=.env --import tsx scripts/worker.ts",
+    "test:http": "node --env-file-if-exists=.env --import tsx scripts/smoke.ts",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "next": "16.4.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "next-auth": "4.24.15",
+    "pg": "8.23.1",
+    "argon2": "0.44.0",
+    "zod": "4.6.7",
+    "qrcode": "1.5.4",
+    "@zxing/browser": "0.1.5",
+    "lucide-react": "1.58.0",
+    "date-fns-tz": "3.2.0",
+    "date-fns": "4.4.0",
+    "@radix-ui/react-slot": "1.5.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.7.0",
+    "tsx": "4.23.15"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/pg": "8.23.1",
+    "@types/qrcode": "1.5.6",
+    "vitest": "5.0.5",
+    "@electric-sql/pglite": "0.5.10",
+    "tailwindcss": "4.3.3",
+    "@tailwindcss/postcss": "4.3.3",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.2",
+    "sharp": "0.35.5",
+    "prettier": "3.9.10"
+  }
+}
