@@ -15,7 +15,7 @@ function databaseTls() {
       // hosted runtimes cannot rely on a file being present, so they may pass
       // the PEM certificate itself as the environment variable value.
       const ca = caValue.includes("BEGIN CERTIFICATE")
-        ? caValue
+        ? caValue.replace(/\\n/g, "\n")
         : readFileSync(caValue, "utf8");
       return {
         ca,
