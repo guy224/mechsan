@@ -8,11 +8,17 @@ export interface DB {
 }
 let pool: Pool;
 function databaseTls() {
-  const caPath = process.env.DATABASE_SSL_ROOT_CERT;
-  if (caPath) {
+  const caValue = process.env.DATABASE_SSL_ROOT_CERT;
+  if (caValue) {
     try {
+      // Local deployments can point at a certificate file. Netlify and other
+      // hosted runtimes cannot rely on a file being present, so they may pass
+      // the PEM certificate itself as the environment variable value.
+      const ca = caValue.includes("BEGIN CERTIFICATE")
+        ? caValue
+        : readFileSync(caValue, "utf8");
       return {
-        ca: readFileSync(caPath, "utf8"),
+        ca,
         rejectUnauthorized: true,
       };
     } catch {
